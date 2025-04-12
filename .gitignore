@@ -1,0 +1,23 @@
+# Dependency directories
+node_modules/
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+*.log
+
+# IDE specific files
+.vscode/
+.idea/
+
+# Build artifacts
+build/
+dist/
+
+# Database files
+*.db
+
+# Temporary files
+*.tmp
