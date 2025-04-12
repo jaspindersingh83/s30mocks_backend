@@ -60,6 +60,11 @@ app.use('/api/interviews', interviewRoutes);
 app.use('/api/ratings', ratingRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
+// Welcome route
+app.get('/', (req, res) => {
+  res.status(200).send('Welcome to S30 Mocks API');
+});
+
 // Initialize default prices
 priceController.initializePrices();
 
