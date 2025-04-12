@@ -69,9 +69,9 @@ try {
   app.use('/api/dashboard', dashboardRoutes);
 
   // // Welcome route
-  // app.get('/api', (req, res) => {
-  //   res.send('Welcome to S30 Mocks API');
-  // });
+  app.get('/api', (req, res) => {
+    res.send('Welcome to S30 Mocks API');
+  });
 
   // Initialize default prices
   priceController.initializePrices();
