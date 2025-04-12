@@ -68,8 +68,8 @@ try {
   app.use('/api/ratings', ratingRoutes);
   app.use('/api/dashboard', dashboardRoutes);
 
-  // // Welcome route
-  app.get('/api', (req, res) => {
+  // Welcome route
+  app.get('/', (req, res) => {
     res.send('Welcome to S30 Mocks API');
   });
 
