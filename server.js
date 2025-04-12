@@ -68,22 +68,22 @@ try {
   app.use('/api/ratings', ratingRoutes);
   app.use('/api/dashboard', dashboardRoutes);
 
-  // Welcome route
-  app.get('/api', (req, res) => {
-    res.send('Welcome to S30 Mocks API');
-  });
+  // // Welcome route
+  // app.get('/api', (req, res) => {
+  //   res.send('Welcome to S30 Mocks API');
+  // });
 
   // Initialize default prices
   priceController.initializePrices();
 
   // Serve static assets in production
-  if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, '../client/build')));
+  // if (process.env.NODE_ENV === 'production') {
+  //   app.use(express.static(path.join(__dirname, '../client/build')));
     
-    app.get('*', (req, res) => {
-      res.sendFile(path.resolve(__dirname, '../client/build', 'index.html'));
-    });
-  }
+  //   app.get('*', (req, res) => {
+  //     res.sendFile(path.resolve(__dirname, '../client/build', 'index.html'));
+  //   });
+  // }
 } catch (err) {
   console.error('Route registration failed:', err);
   process.exit(1);
