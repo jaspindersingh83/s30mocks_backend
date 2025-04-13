@@ -1,6 +1,12 @@
 const Interview = require('../models/Interview');
 const User = require('../models/User');
 const { validationResult } = require('express-validator');
+const { 
+  sendInterviewBookingNotification,
+  sendInterviewCancellationNotification,
+  sendInterviewBookingConfirmation,
+  sendInterviewCancellationConfirmation
+} = require('../utils/email');
 
 // Create a new interview
 exports.createInterview = async (req, res) => {
@@ -42,6 +48,22 @@ exports.createInterview = async (req, res) => {
     });
 
     await interview.save();
+    
+    // Get candidate, interviewer, and admin details for email notification
+    const candidate = await User.findById(req.user.id);
+    const interviewerDetails = await User.findById(interviewerId);
+    const admin = await User.findOne({ role: 'admin' });
+    const adminEmail = admin ? admin.email : process.env.ADMIN_EMAIL || 'admin@s30mocks.com';
+    
+    // Send email notification to interviewer
+    try {
+      await sendInterviewBookingNotification(interview, candidate, interviewerDetails, adminEmail);
+      // Send email confirmation to candidate
+      await sendInterviewBookingConfirmation(interview, candidate, interviewerDetails, adminEmail);
+    } catch (emailError) {
+      console.error('Error sending booking notification emails:', emailError);
+      // Continue with the response even if email fails
+    }
     
     res.status(201).json(interview);
   } catch (err) {
@@ -163,6 +185,23 @@ exports.cancelInterview = async (req, res) => {
         slot.isBooked = false;
         await slot.save();
       }
+    }
+    
+    // Get candidate, interviewer, and admin details for email notification
+    const candidate = await User.findById(req.user.id);
+    const interviewer = await User.findById(interview.interviewer);
+    const admin = await User.findOne({ role: 'admin' });
+    const adminEmail = admin ? admin.email : process.env.ADMIN_EMAIL || 'admin@s30mocks.com';
+    
+    // Send email notifications
+    try {
+      // Send to interviewer
+      await sendInterviewCancellationNotification(interview, candidate, interviewer, adminEmail);
+      // Send confirmation to candidate
+      await sendInterviewCancellationConfirmation(interview, candidate, interviewer, adminEmail);
+    } catch (emailError) {
+      console.error('Error sending cancellation notification emails:', emailError);
+      // Continue with the response even if email fails
     }
     
     res.json({ message: 'Interview cancelled successfully', interview });

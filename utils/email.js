@@ -19,7 +19,7 @@ const ses = new AWS.SES();
  * @param {String} textBody - Plain text content of the email
  * @returns {Promise} - Promise that resolves to the SES response
  */
-const sendEmail = async (to, subject, htmlBody, textBody) => {
+const sendEmail = async (to, subject, htmlBody, textBody, cc = []) => {
   // Skip sending emails if AWS credentials are not configured
   if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
     console.log('AWS credentials not configured. Email would have been sent to:', Array.isArray(to) ? to : [to]);
@@ -33,7 +33,8 @@ const sendEmail = async (to, subject, htmlBody, textBody) => {
   const params = {
     Source: process.env.SES_EMAIL_FROM || 'noreply@s30mocks.com',
     Destination: {
-      ToAddresses: Array.isArray(to) ? to : [to]
+      ToAddresses: Array.isArray(to) ? to : [to],
+      CcAddresses: Array.isArray(cc) ? cc : [cc]
     },
     Message: {
       Subject: {
@@ -248,8 +249,321 @@ const sendInterviewReminder = async (interview, candidate, interviewer, adminEma
   ]);
 };
 
+/**
+ * Send interview booking notification to interviewer
+ * @param {Object} interview - The interview object
+ * @param {Object} candidate - The candidate user object
+ * @param {Object} interviewer - The interviewer user object
+ * @returns {Promise} - Promise that resolves to the SES response
+ */
+const sendInterviewBookingNotification = async (interview, candidate, interviewer, adminEmail) => {
+  const subject = 'New Interview Booking Notification';
+  
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #4a6ee0;">New Interview Booking</h2>
+      <p>Hello ${interviewer.name},</p>
+      <p>A new interview has been booked with you. Here are the details:</p>
+      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p><strong>Candidate:</strong> ${candidate.name}</p>
+        <p><strong>Email:</strong> ${candidate.email}</p>
+        <p><strong>Date & Time:</strong> ${new Date(interview.scheduledDate).toLocaleString()}</p>
+        <p><strong>Duration:</strong> ${interview.duration} minutes</p>
+        <p><strong>Meeting Link:</strong> ${interview.meetingLink || 'To be provided'}</p>
+      </div>
+      <p>Please log in to your account to view more details and prepare for the interview.</p>
+      <p>Thank you for being a part of our platform!</p>
+      <p>Best regards,<br>S30 Mocks Team</p>
+    </div>
+  `;
+  
+  const textBody = `
+    New Interview Booking
+    
+    Hello ${interviewer.name},
+    
+    A new interview has been booked with you. Here are the details:
+    
+    Candidate: ${candidate.name}
+    Email: ${candidate.email}
+    Date & Time: ${new Date(interview.scheduledDate).toLocaleString()}
+    Duration: ${interview.duration} minutes
+    Meeting Link: ${interview.meetingLink || 'To be provided'}
+    
+    Please log in to your account to view more details and prepare for the interview.
+    
+    Thank you for being a part of our platform!
+    
+    Best regards,
+    S30 Mocks Team
+  `;
+  
+  return await sendEmail(interviewer.email, subject, htmlBody, textBody, adminEmail);
+};
+
+/**
+ * Send interview cancellation notification to interviewer
+ * @param {Object} interview - The interview object
+ * @param {Object} candidate - The candidate user object
+ * @param {Object} interviewer - The interviewer user object
+ * @returns {Promise} - Promise that resolves to the SES response
+ */
+const sendInterviewCancellationNotification = async (interview, candidate, interviewer, adminEmail) => {
+  const subject = 'Interview Cancellation Notification';
+  
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #e74c3c;">Interview Cancelled</h2>
+      <p>Hello ${interviewer.name},</p>
+      <p>We regret to inform you that an interview has been cancelled by the candidate. Here are the details:</p>
+      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p><strong>Candidate:</strong> ${candidate.name}</p>
+        <p><strong>Email:</strong> ${candidate.email}</p>
+        <p><strong>Originally Scheduled:</strong> ${new Date(interview.scheduledDate).toLocaleString()}</p>
+        <p><strong>Duration:</strong> ${interview.duration} minutes</p>
+      </div>
+      <p>Your time slot is now available for other bookings.</p>
+      <p>Thank you for your understanding.</p>
+      <p>Best regards,<br>S30 Mocks Team</p>
+    </div>
+  `;
+  
+  const textBody = `
+    Interview Cancelled
+    
+    Hello ${interviewer.name},
+    
+    We regret to inform you that an interview has been cancelled by the candidate. Here are the details:
+    
+    Candidate: ${candidate.name}
+    Email: ${candidate.email}
+    Originally Scheduled: ${new Date(interview.scheduledDate).toLocaleString()}
+    Duration: ${interview.duration} minutes
+    
+    Your time slot is now available for other bookings.
+    
+    Thank you for your understanding.
+    
+    Best regards,
+    S30 Mocks Team
+  `;
+  
+  return await sendEmail(interviewer.email, subject, htmlBody, textBody, adminEmail);
+};
+
+/**
+ * Send payment verification notification to interviewer
+ * @param {Object} interview - The interview object
+ * @param {Object} payment - The payment object
+ * @param {Object} candidate - The candidate user object
+ * @param {Object} interviewer - The interviewer user object
+ * @returns {Promise} - Promise that resolves to the SES response
+ */
+const sendPaymentVerificationNotification = async (interview, payment, candidate, interviewer, adminEmail) => {
+  const subject = 'Payment Verification Required';
+  
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #f39c12;">Payment Verification Required</h2>
+      <p>Hello ${interviewer.name},</p>
+      <p>A candidate has submitted payment for an upcoming interview with you. Please verify this payment:</p>
+      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p><strong>Candidate:</strong> ${candidate.name}</p>
+        <p><strong>Email:</strong> ${candidate.email}</p>
+        <p><strong>Interview Date:</strong> ${new Date(interview.scheduledDate).toLocaleString()}</p>
+        <p><strong>Amount:</strong> ${payment.currency} ${payment.amount}</p>
+        <p><strong>Transaction ID:</strong> ${payment.transactionId || 'Not provided'}</p>
+      </div>
+      <p>Please log in to your account to verify this payment. The candidate has uploaded proof of payment which you can review on the platform.</p>
+      <p>Thank you for your prompt attention to this matter.</p>
+      <p>Best regards,<br>S30 Mocks Team</p>
+    </div>
+  `;
+  
+  const textBody = `
+    Payment Verification Required
+    
+    Hello ${interviewer.name},
+    
+    A candidate has submitted payment for an upcoming interview with you. Please verify this payment:
+    
+    Candidate: ${candidate.name}
+    Email: ${candidate.email}
+    Interview Date: ${new Date(interview.scheduledDate).toLocaleString()}
+    Amount: ${payment.currency} ${payment.amount}
+    Transaction ID: ${payment.transactionId || 'Not provided'}
+    
+    Please log in to your account to verify this payment. The candidate has uploaded proof of payment which you can review on the platform.
+    
+    Thank you for your prompt attention to this matter.
+    
+    Best regards,
+    S30 Mocks Team
+  `;
+  
+  return await sendEmail(interviewer.email, subject, htmlBody, textBody, adminEmail);
+};
+
+/**
+ * Send interview booking confirmation to candidate
+ * @param {Object} interview - The interview object
+ * @param {Object} candidate - The candidate user object
+ * @param {Object} interviewer - The interviewer user object
+ * @param {String} adminEmail - Admin email address
+ * @returns {Promise} - Promise that resolves to the SES response
+ */
+const sendInterviewBookingConfirmation = async (interview, candidate, interviewer, adminEmail) => {
+  const subject = 'Interview Booking Confirmation';
+  
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #4a6ee0;">Interview Booking Confirmation</h2>
+      <p>Hello ${candidate.name},</p>
+      <p>Your interview has been successfully booked. Here are the details:</p>
+      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p><strong>Interviewer:</strong> ${interviewer.name}</p>
+        <p><strong>Date & Time:</strong> ${new Date(interview.scheduledDate).toLocaleString()}</p>
+        <p><strong>Duration:</strong> ${interview.duration} minutes</p>
+        <p><strong>Meeting Link:</strong> ${interview.meetingLink || 'Will be provided by the interviewer'}</p>
+      </div>
+      <p>Please make sure to complete the payment to confirm your interview slot. You can do this from your dashboard.</p>
+      <p>We wish you all the best for your interview!</p>
+      <p>Best regards,<br>S30 Mocks Team</p>
+    </div>
+  `;
+  
+  const textBody = `
+    Interview Booking Confirmation
+    
+    Hello ${candidate.name},
+    
+    Your interview has been successfully booked. Here are the details:
+    
+    Interviewer: ${interviewer.name}
+    Date & Time: ${new Date(interview.scheduledDate).toLocaleString()}
+    Duration: ${interview.duration} minutes
+    Meeting Link: ${interview.meetingLink || 'Will be provided by the interviewer'}
+    
+    Please make sure to complete the payment to confirm your interview slot. You can do this from your dashboard.
+    
+    We wish you all the best for your interview!
+    
+    Best regards,
+    S30 Mocks Team
+  `;
+  
+  return await sendEmail(candidate.email, subject, htmlBody, textBody, adminEmail);
+};
+
+/**
+ * Send interview cancellation confirmation to candidate
+ * @param {Object} interview - The interview object
+ * @param {Object} candidate - The candidate user object
+ * @param {Object} interviewer - The interviewer user object
+ * @param {String} adminEmail - Admin email address
+ * @returns {Promise} - Promise that resolves to the SES response
+ */
+const sendInterviewCancellationConfirmation = async (interview, candidate, interviewer, adminEmail) => {
+  const subject = 'Interview Cancellation Confirmation';
+  
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #e74c3c;">Interview Cancellation Confirmation</h2>
+      <p>Hello ${candidate.name},</p>
+      <p>Your interview has been successfully cancelled. Here are the details of the cancelled interview:</p>
+      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p><strong>Interviewer:</strong> ${interviewer.name}</p>
+        <p><strong>Originally Scheduled:</strong> ${new Date(interview.scheduledDate).toLocaleString()}</p>
+        <p><strong>Duration:</strong> ${interview.duration} minutes</p>
+      </div>
+      <p>If you've already made a payment for this interview, please contact us regarding the refund process.</p>
+      <p>We hope to see you book another interview soon!</p>
+      <p>Best regards,<br>S30 Mocks Team</p>
+    </div>
+  `;
+  
+  const textBody = `
+    Interview Cancellation Confirmation
+    
+    Hello ${candidate.name},
+    
+    Your interview has been successfully cancelled. Here are the details of the cancelled interview:
+    
+    Interviewer: ${interviewer.name}
+    Originally Scheduled: ${new Date(interview.scheduledDate).toLocaleString()}
+    Duration: ${interview.duration} minutes
+    
+    If you've already made a payment for this interview, please contact us regarding the refund process.
+    
+    We hope to see you book another interview soon!
+    
+    Best regards,
+    S30 Mocks Team
+  `;
+  
+  return await sendEmail(candidate.email, subject, htmlBody, textBody, adminEmail);
+};
+
+/**
+ * Send payment verification confirmation to candidate
+ * @param {Object} interview - The interview object
+ * @param {Object} payment - The payment object
+ * @param {Object} candidate - The candidate user object
+ * @param {Object} interviewer - The interviewer user object
+ * @param {String} adminEmail - Admin email address
+ * @returns {Promise} - Promise that resolves to the SES response
+ */
+const sendPaymentVerificationConfirmation = async (interview, payment, candidate, interviewer, adminEmail) => {
+  const subject = 'Payment Verification Confirmation';
+  
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #27ae60;">Payment Verified Successfully</h2>
+      <p>Hello ${candidate.name},</p>
+      <p>Your payment for the upcoming interview has been verified successfully. Your interview is now confirmed!</p>
+      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p><strong>Interviewer:</strong> ${interviewer.name}</p>
+        <p><strong>Interview Date:</strong> ${new Date(interview.scheduledDate).toLocaleString()}</p>
+        <p><strong>Amount Paid:</strong> ${payment.currency} ${payment.amount}</p>
+        <p><strong>Transaction ID:</strong> ${payment.transactionId || 'Not provided'}</p>
+      </div>
+      <p>Please make sure to join the interview on time using the meeting link provided in your dashboard.</p>
+      <p>We wish you all the best for your interview!</p>
+      <p>Best regards,<br>S30 Mocks Team</p>
+    </div>
+  `;
+  
+  const textBody = `
+    Payment Verified Successfully
+    
+    Hello ${candidate.name},
+    
+    Your payment for the upcoming interview has been verified successfully. Your interview is now confirmed!
+    
+    Interviewer: ${interviewer.name}
+    Interview Date: ${new Date(interview.scheduledDate).toLocaleString()}
+    Amount Paid: ${payment.currency} ${payment.amount}
+    Transaction ID: ${payment.transactionId || 'Not provided'}
+    
+    Please make sure to join the interview on time using the meeting link provided in your dashboard.
+    
+    We wish you all the best for your interview!
+    
+    Best regards,
+    S30 Mocks Team
+  `;
+  
+  return await sendEmail(candidate.email, subject, htmlBody, textBody, adminEmail);
+};
+
 module.exports = {
   sendEmail,
   sendFeedbackNotification,
-  sendInterviewReminder
+  sendInterviewReminder,
+  sendInterviewBookingNotification,
+  sendInterviewCancellationNotification,
+  sendPaymentVerificationNotification,
+  sendInterviewBookingConfirmation,
+  sendInterviewCancellationConfirmation,
+  sendPaymentVerificationConfirmation
 };

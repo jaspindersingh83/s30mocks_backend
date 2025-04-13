@@ -5,6 +5,10 @@ const InterviewPrice = require('../models/InterviewPrice');
 const path = require('path');
 const multer = require('multer');
 const { uploadToS3 } = require('../utils/s3');
+const { 
+  sendPaymentVerificationNotification,
+  sendPaymentVerificationConfirmation 
+} = require('../utils/email');
 
 // Configure multer to store files in memory for S3 upload
 const memoryStorage = multer.memoryStorage();
@@ -207,6 +211,20 @@ exports.submitPaymentProof = async (req, res) => {
     payment.status = 'pending'; // Change status to pending after proof is submitted
     await payment.save();
     
+    // Get candidate, interviewer, and admin details for email notification
+    const candidate = await User.findById(req.user.id);
+    const interviewer = await User.findById(interview.interviewer);
+    const admin = await User.findOne({ role: 'admin' });
+    const adminEmail = admin ? admin.email : process.env.ADMIN_EMAIL || 'admin@s30mocks.com';
+    
+    // Send email notification to interviewer about payment verification
+    try {
+      await sendPaymentVerificationNotification(interview, payment, candidate, interviewer, adminEmail);
+    } catch (emailError) {
+      console.error('Error sending payment verification notification email:', emailError);
+      // Continue with the response even if email fails
+    }
+    
     res.json({
       message: 'Payment proof submitted successfully',
       paymentId: payment._id,
@@ -303,6 +321,23 @@ exports.verifyPayment = async (req, res) => {
     }
     
     await payment.save();
+    
+    // If payment was verified, send confirmation email to candidate
+    if (verified) {
+      try {
+        // Get candidate, interviewer, and admin details for email notification
+        const candidate = await User.findById(interview.candidate);
+        const interviewer = await User.findById(interview.interviewer);
+        const admin = await User.findOne({ role: 'admin' });
+        const adminEmail = admin ? admin.email : process.env.ADMIN_EMAIL || 'admin@s30mocks.com';
+        
+        // Send payment verification confirmation to candidate
+        await sendPaymentVerificationConfirmation(interview, payment, candidate, interviewer, adminEmail);
+      } catch (emailError) {
+        console.error('Error sending payment verification confirmation email:', emailError);
+        // Continue with the response even if email fails
+      }
+    }
     
     res.json({
       message: verified ? 'Payment verified successfully' : 'Payment rejected',
