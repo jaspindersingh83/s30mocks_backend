@@ -323,10 +323,14 @@ exports.createInterviewerSlot = async (req, res) => {
       return res.status(400).json({ message: 'Invalid date format' });
     }
     
-    // Ensure start time is at a full hour (minutes, seconds, and milliseconds are 0)
-    if (start.getMinutes() !== 0 || start.getSeconds() !== 0 || start.getMilliseconds() !== 0) {
-      return res.status(400).json({ message: 'Slots can only be created at full hours (1:00 PM, 2:00 PM, etc.)' });
-    }
+    // We no longer require full hour validation
+    // Just log the time for debugging purposes
+    console.log('Slot creation time:', {
+      hours: start.getHours(),
+      minutes: start.getMinutes(),
+      seconds: start.getSeconds(),
+      milliseconds: start.getMilliseconds()
+    });
     
     // Ensure start time is in the future
     if (start < new Date()) {
