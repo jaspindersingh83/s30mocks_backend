@@ -42,7 +42,7 @@ const sendEmail = async (to, subject, htmlBody, textBody, cc = []) => {
   }
 
   // Use a verified sender email address
-  const verifiedSender = process.env.VERIFIED_EMAIL_SENDER || 'jaspindersingh83@gmail.com';
+  const verifiedSender = process.env.VERIFIED_EMAIL_SENDER || 'jaspinder@thes30.com';
   
   const params = {
     Source: verifiedSender,
