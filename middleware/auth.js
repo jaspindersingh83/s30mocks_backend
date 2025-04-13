@@ -1,11 +1,15 @@
 const jwt = require('jsonwebtoken');
 
 module.exports = function(req, res, next) {
-  // Get token from header or cookie
-  const token = req.cookies.token || req.header('x-auth-token');
+  // Get token from various sources
+  const token = 
+    req.cookies.token || 
+    req.header('x-auth-token') || 
+    req.header('Authorization')?.replace('Bearer ', '');
 
   // Check if no token
   if (!token) {
+    console.log('Auth middleware: No token provided');
     return res.status(401).json({ message: 'No token, authorization denied' });
   }
 
@@ -15,6 +19,7 @@ module.exports = function(req, res, next) {
     req.user = decoded.user;
     next();
   } catch (err) {
+    console.error('Auth middleware: Invalid token', err.message);
     res.status(401).json({ message: 'Token is not valid' });
   }
 };
