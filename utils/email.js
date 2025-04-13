@@ -29,12 +29,26 @@ const sendEmail = async (to, subject, htmlBody, textBody, cc = []) => {
       message: 'Email sending skipped - AWS credentials not configured'
     };
   }
+  
+  // In development or if DISABLE_EMAILS is set, log instead of sending
+  if (process.env.NODE_ENV !== 'production' || process.env.DISABLE_EMAILS === 'true') {
+    console.log('Email sending disabled in development. Would have sent to:', Array.isArray(to) ? to : [to]);
+    console.log('Email subject:', subject);
+    console.log('Email content:', textBody);
+    return { 
+      messageId: 'mock-message-id',
+      message: 'Email sending skipped - in development mode'
+    };
+  }
 
+  // Use a verified sender email address
+  const verifiedSender = process.env.VERIFIED_EMAIL_SENDER || 'jaspindersingh83@gmail.com';
+  
   const params = {
-    Source: process.env.SES_EMAIL_FROM || 'noreply@s30mocks.com',
+    Source: verifiedSender,
     Destination: {
       ToAddresses: Array.isArray(to) ? to : [to],
-      CcAddresses: Array.isArray(cc) ? cc : [cc]
+      CcAddresses: Array.isArray(cc) && cc.length > 0 ? cc : []
     },
     Message: {
       Subject: {
@@ -52,8 +66,52 @@ const sendEmail = async (to, subject, htmlBody, textBody, cc = []) => {
   };
 
   try {
-    return await ses.sendEmail(params).promise();
+    const result = await ses.sendEmail(params).promise();
+    console.log('Email sent successfully:', result.MessageId);
+    return result;
   } catch (error) {
+    // Handle specific AWS SES errors
+    if (error.code === 'MessageRejected' && error.message.includes('not verified')) {
+      console.error('Email address verification error:', error.message);
+      // Log instructions for verifying email in AWS SES
+      console.log('To fix this issue, verify the email addresses in AWS SES console for the AP-SOUTH-1 region');
+      
+      // Use environment variable for admin email fallback
+      const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
+      
+      // If we're in production, attempt to send to admin only
+      if (process.env.NODE_ENV === 'production') {
+        try {
+          // Create a new params object with only verified admin email
+          const fallbackParams = {
+            ...params,
+            Destination: {
+              ToAddresses: [adminEmail],
+              CcAddresses: []
+            },
+            Message: {
+              ...params.Message,
+              Subject: {
+                Data: `[UNDELIVERED] ${subject}`
+              },
+              Body: {
+                ...params.Message.Body,
+                Text: {
+                  Data: `Original recipients: ${JSON.stringify(params.Destination.ToAddresses)}\n\n${textBody}`
+                }
+              }
+            }
+          };
+          
+          // Try to send to admin only
+          await ses.sendEmail(fallbackParams).promise();
+          console.log('Fallback email sent to admin');
+        } catch (fallbackError) {
+          console.error('Failed to send fallback email to admin:', fallbackError);
+        }
+      }
+    }
+    
     console.error('Error sending email:', error);
     // Return a mock response instead of throwing to prevent application failures
     return { 
