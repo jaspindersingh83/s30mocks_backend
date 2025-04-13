@@ -2,6 +2,7 @@ const Interview = require('../models/Interview');
 const User = require('../models/User');
 const { validationResult } = require('express-validator');
 const { 
+  sendEmail,
   sendInterviewBookingNotification,
   sendInterviewCancellationNotification,
   sendInterviewBookingConfirmation,
@@ -197,8 +198,53 @@ exports.cancelInterview = async (req, res) => {
     try {
       // Send to interviewer
       await sendInterviewCancellationNotification(interview, candidate, interviewer, adminEmail);
+      
       // Send confirmation to candidate
       await sendInterviewCancellationConfirmation(interview, candidate, interviewer, adminEmail);
+      
+      // Send notification to admin (if admin is not the interviewer)
+      if (adminEmail && adminEmail !== interviewer.email) {
+        await sendEmail(
+          adminEmail,
+          `[ADMIN] Interview Cancellation: ${candidate.name} with ${interviewer.name}`,
+          `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #e74c3c;">Interview Cancellation (Admin Notification)</h2>
+            <p>Hello Admin,</p>
+            <p>An interview has been cancelled. Here are the details:</p>
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p><strong>Candidate:</strong> ${candidate.name} (${candidate.email})</p>
+              <p><strong>Interviewer:</strong> ${interviewer.name} (${interviewer.email})</p>
+              <p><strong>Originally Scheduled:</strong> ${new Date(interview.scheduledDate).toLocaleString()}</p>
+              <p><strong>Duration:</strong> ${interview.duration} minutes</p>
+              <p><strong>Interview Type:</strong> ${interview.interviewType || 'Not specified'}</p>
+              <p><strong>Price:</strong> ${interview.currency} ${interview.price}</p>
+              <p><strong>Cancelled By:</strong> ${req.user.role === 'admin' ? 'Admin' : 'Candidate'}</p>
+            </div>
+            <p>This is an automated notification for administrative purposes.</p>
+            <p>Best regards,<br>S30 Mocks System</p>
+          </div>`,
+          `Interview Cancellation (Admin Notification)
+
+Hello Admin,
+
+An interview has been cancelled. Here are the details:
+
+Candidate: ${candidate.name} (${candidate.email})
+Interviewer: ${interviewer.name} (${interviewer.email})
+Originally Scheduled: ${new Date(interview.scheduledDate).toLocaleString()}
+Duration: ${interview.duration} minutes
+Interview Type: ${interview.interviewType || 'Not specified'}
+Price: ${interview.currency} ${interview.price}
+Cancelled By: ${req.user.role === 'admin' ? 'Admin' : 'Candidate'}
+
+This is an automated notification for administrative purposes.
+
+Best regards,
+S30 Mocks System`
+        );
+      }
+      
+      console.log('Cancellation notification emails sent successfully');
     } catch (emailError) {
       console.error('Error sending cancellation notification emails:', emailError);
       // Continue with the response even if email fails

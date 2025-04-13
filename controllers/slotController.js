@@ -6,6 +6,11 @@ const { validationResult } = require('express-validator');
 const { parse } = require('csv-parse/sync');
 const nodemailer = require('nodemailer');
 const { scheduleInterviewReminder } = require('../utils/scheduler');
+const { 
+  sendEmail,
+  sendInterviewBookingNotification,
+  sendInterviewBookingConfirmation 
+} = require('../utils/email');
 
 // Create slots from Google Sheet data
 exports.createSlotsFromSheet = async (req, res) => {
@@ -238,6 +243,67 @@ exports.bookSlot = async (req, res) => {
     
     // Schedule email reminders for 30 minutes before the interview
     await scheduleInterviewReminder(interview._id);
+    
+    // Get candidate and interviewer details for email notifications
+    const candidate = await User.findById(req.user.id);
+    const interviewer = await User.findById(slot.interviewer);
+    const adminEmail = process.env.ADMIN_EMAIL || 'jaspinder@thes30.com';
+    
+    // Send email notifications to all parties
+    try {
+      // Send notification to interviewer
+      await sendInterviewBookingNotification(interview, candidate, interviewer, adminEmail);
+      
+      // Send confirmation to candidate
+      await sendInterviewBookingConfirmation(interview, candidate, interviewer, adminEmail);
+      
+      // Send notification to admin (using the same template as interviewer)
+      if (adminEmail && adminEmail !== interviewer.email) {
+        await sendEmail(
+          adminEmail,
+          `[ADMIN] New Interview Booking: ${candidate.name} with ${interviewer.name}`,
+          `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #4a6ee0;">New Interview Booking (Admin Notification)</h2>
+            <p>Hello Admin,</p>
+            <p>A new interview has been booked. Here are the details:</p>
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p><strong>Candidate:</strong> ${candidate.name} (${candidate.email})</p>
+              <p><strong>Interviewer:</strong> ${interviewer.name} (${interviewer.email})</p>
+              <p><strong>Date & Time:</strong> ${new Date(interview.scheduledDate).toLocaleString()}</p>
+              <p><strong>Duration:</strong> ${interview.duration} minutes</p>
+              <p><strong>Interview Type:</strong> ${interview.interviewType}</p>
+              <p><strong>Price:</strong> ${interview.currency} ${interview.price}</p>
+              <p><strong>Meeting Link:</strong> ${interview.meetingLink || 'To be provided'}</p>
+            </div>
+            <p>This is an automated notification for administrative purposes.</p>
+            <p>Best regards,<br>S30 Mocks System</p>
+          </div>`,
+          `New Interview Booking (Admin Notification)
+
+Hello Admin,
+
+A new interview has been booked. Here are the details:
+
+Candidate: ${candidate.name} (${candidate.email})
+Interviewer: ${interviewer.name} (${interviewer.email})
+Date & Time: ${new Date(interview.scheduledDate).toLocaleString()}
+Duration: ${interview.duration} minutes
+Interview Type: ${interview.interviewType}
+Price: ${interview.currency} ${interview.price}
+Meeting Link: ${interview.meetingLink || 'To be provided'}
+
+This is an automated notification for administrative purposes.
+
+Best regards,
+S30 Mocks System`
+        );
+      }
+      
+      console.log('Booking notification emails sent successfully');
+    } catch (emailError) {
+      console.error('Error sending booking notification emails:', emailError);
+      // Continue with the response even if email sending fails
+    }
     
     res.json({
       message: 'Slot booked successfully',
