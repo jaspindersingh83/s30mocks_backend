@@ -167,11 +167,19 @@ exports.uploadUpiQrCode = async (req, res) => {
     }
     
     // Upload QR code to S3 and update user with QR code URL and UPI ID
-    const qrCodeUrl = await uploadToS3(req.file, 'qr-codes');
+    let qrCodeUrl = null;
+    if (req.file) {
+      qrCodeUrl = await uploadToS3(req.file, 'qr-codes');
+    }
     
     const user = await User.findById(req.user.id);
     user.upiId = upiId;
-    user.qrCodeUrl = qrCodeUrl;
+    
+    // Only update QR code URL if a new file was uploaded
+    if (qrCodeUrl) {
+      user.qrCodeUrl = qrCodeUrl;
+    }
+    
     await user.save();
     
     res.json({
