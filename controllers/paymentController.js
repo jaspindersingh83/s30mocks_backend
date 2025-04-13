@@ -114,15 +114,13 @@ exports.createPaymentRequest = async (req, res) => {
       return res.status(404).json({ message: `Price for ${interview.interviewType} interviews not found` });
     }
     
-    // Calculate amount with 18% GST
+    // Use base price directly (no GST)
     const basePrice = priceRecord.price;
-    const gstAmount = parseFloat((basePrice * 0.18).toFixed(2));
-    const totalPrice = parseFloat((basePrice + gstAmount).toFixed(2));
     
     // Convert to paise (multiply by 100)
-    const amount = Math.round(totalPrice * 100);
+    const amount = Math.round(basePrice * 100);
     
-    // Create payment record with GST details
+    // Create payment record
     const payment = new Payment({
       interview: interviewId,
       paidBy: req.user.id, // Add the paidBy field with the current user's ID
@@ -142,10 +140,8 @@ exports.createPaymentRequest = async (req, res) => {
       paymentId: payment._id,
       upiId: interviewer.upiId,
       qrCodeUrl: interviewer.qrCodeUrl,
-      basePrice: basePrice,
-      gstAmount: gstAmount,
       amount: amount / 100, // Convert to rupees for display
-      gstPercentage: 18
+      currency: priceRecord.currency || 'INR'
     });
   } catch (err) {
     console.error('Payment request error:', err);
