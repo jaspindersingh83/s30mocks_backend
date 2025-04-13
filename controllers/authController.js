@@ -50,7 +50,24 @@ exports.register = async (req, res) => {
       { expiresIn: '24h' },
       (err, token) => {
         if (err) throw err;
-        res.json({ token });
+        
+        // Set cookie with proper settings for cross-domain use
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production', // Secure in production
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
+          maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        });
+        
+        res.json({ 
+          token,
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+          }
+        });
       }
     );
   } catch (err) {
@@ -96,12 +113,12 @@ exports.login = async (req, res) => {
       (err, token) => {
         if (err) throw err;
         
-        // Set cookie
+        // Set cookie with proper settings for cross-domain use
         res.cookie('token', token, {
           httpOnly: true,
-          maxAge: 24 * 60 * 60 * 1000, // 24 hours
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict'
+          secure: process.env.NODE_ENV === 'production', // Secure in production
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
+          maxAge: 24 * 60 * 60 * 1000 // 24 hours
         });
         
         res.json({
@@ -125,7 +142,7 @@ exports.login = async (req, res) => {
 exports.getCurrentUser = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
-    res.json(user);
+    res.json({ user });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -134,66 +151,61 @@ exports.getCurrentUser = async (req, res) => {
 
 // Logout user
 exports.logout = (req, res) => {
-  res.clearCookie('token');
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  });
   res.json({ message: 'Logged out successfully' });
 };
 
 // Google OAuth login/register
 exports.googleAuth = async (req, res) => {
   try {
-    const { credential, token, tokenId, email, name, picture } = req.body;
+    const { credential } = req.body;
     
-    // Support multiple token parameter names for compatibility
-    const googleToken = credential || token || tokenId;
-    
-    if (!googleToken) {
-      return res.status(400).json({ message: 'Google token is required' });
+    if (!credential) {
+      return res.status(400).json({ message: 'Google credential is required' });
     }
     
-    // Verify the Google token
+    // Verify Google token
     const ticket = await client.verifyIdToken({
-      idToken: googleToken,
+      idToken: credential,
       audience: process.env.GOOGLE_CLIENT_ID
     });
     
-    const payload = ticket.getPayload();
+    const { email_verified, email, name, picture } = ticket.getPayload();
     
-    // Verify that the email from the token matches the one provided
-    if (payload.email !== email) {
-      return res.status(400).json({ message: 'Email verification failed' });
+    // Check if email is verified
+    if (!email_verified) {
+      return res.status(400).json({ message: 'Google email not verified' });
     }
     
     // Check if user exists
     let user = await User.findOne({ email });
     
     if (!user) {
-      // Create new user if doesn't exist
-      // Generate a random password for Google users
-      const randomPassword = Math.random().toString(36).slice(-10);
-      
+      // Create new user
       user = new User({
         name,
         email,
-        password: randomPassword,
-        role: 'candidate', // All new users are candidates by default
-        googleId: payload.sub,
-        picture: picture
+        googleId: ticket.getUserId(),
+        picture,
+        role: 'candidate' // Default role for Google sign-ups
       });
       
       await user.save();
     } else {
-      // Update existing user with Google info if needed
+      // Update existing user with Google info if not already set
       if (!user.googleId) {
-        user.googleId = payload.sub;
-        if (picture && !user.picture) {
-          user.picture = picture;
-        }
+        user.googleId = ticket.getUserId();
+        user.picture = picture || user.picture;
         await user.save();
       }
     }
     
     // Generate JWT
-    const jwtPayload = {
+    const payload = {
       user: {
         id: user.id,
         role: user.role
@@ -201,18 +213,18 @@ exports.googleAuth = async (req, res) => {
     };
     
     jwt.sign(
-      jwtPayload,
+      payload,
       process.env.JWT_SECRET,
       { expiresIn: '24h' },
       (err, jwtToken) => {
         if (err) throw err;
         
-        // Set cookie
+        // Set cookie with proper settings for cross-domain use
         res.cookie('token', jwtToken, {
           httpOnly: true,
-          maxAge: 24 * 60 * 60 * 1000, // 24 hours
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict'
+          secure: process.env.NODE_ENV === 'production', // Secure in production
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
+          maxAge: 24 * 60 * 60 * 1000 // 24 hours
         });
         
         res.json({
@@ -228,7 +240,7 @@ exports.googleAuth = async (req, res) => {
       }
     );
   } catch (err) {
-    console.error('Google auth error:', err.message);
-    res.status(500).send('Server error');
+    console.error('Google auth error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
