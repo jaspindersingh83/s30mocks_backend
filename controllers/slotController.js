@@ -219,6 +219,9 @@ exports.bookSlot = async (req, res) => {
     
     // Set duration based on interview type
     const duration = slot.interviewType === 'DSA' ? 40 : 50;
+
+    // Find interviewer
+    const interviewer = await User.findById(slot.interviewer);
     
     // Create interview
     const interview = new Interview({
@@ -231,7 +234,7 @@ exports.bookSlot = async (req, res) => {
       currency: priceRecord.currency,
       status: 'scheduled',
       slot: slot._id, // Set the reference to the slot
-      meetingLink: `https://meet.google.com/${Math.random().toString(36).substring(2, 10)}`
+      meetingLink: interviewer?.defaultMeetingLink || 'ping support team in whatsapp for link'
     });
     
     await interview.save();
@@ -246,7 +249,6 @@ exports.bookSlot = async (req, res) => {
     
     // Get candidate and interviewer details for email notifications
     const candidate = await User.findById(req.user.id);
-    const interviewer = await User.findById(slot.interviewer);
     const adminEmail = process.env.ADMIN_EMAIL || 'jaspinder@thes30.com';
     
     // Send email notifications to all parties

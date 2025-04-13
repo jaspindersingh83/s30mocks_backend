@@ -45,7 +45,7 @@ exports.createInterview = async (req, res) => {
       interviewer: interviewerId,
       scheduledDate,
       duration: duration || 60,
-      meetingLink: `https://meet.google.com/${Math.random().toString(36).substring(2, 10)}`
+      meetingLink: interviewer?.defaultMeetingLink || 'ping support team in whatsapp for link'
     });
 
     await interview.save();
