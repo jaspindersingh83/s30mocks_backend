@@ -225,6 +225,7 @@ exports.bookSlot = async (req, res) => {
       price: priceRecord.price,
       currency: priceRecord.currency,
       status: 'scheduled',
+      slot: slot._id, // Set the reference to the slot
       meetingLink: `https://meet.google.com/${Math.random().toString(36).substring(2, 10)}`
     });
     

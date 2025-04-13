@@ -58,6 +58,10 @@ const InterviewSchema = new mongoose.Schema({
   paymentId: {
     type: String
   },
+  slot: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'InterviewSlot'
+  },
   createdAt: {
     type: Date,
     default: Date.now

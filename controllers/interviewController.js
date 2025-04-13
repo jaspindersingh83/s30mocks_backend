@@ -234,8 +234,42 @@ exports.updateInterviewStatus = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
     
+    // Store old status for comparison
+    const oldStatus = interview.status;
+    
+    // Update interview status
     interview.status = status;
     await interview.save();
+    
+    // If status is being changed to cancelled, make the slot available again
+    if (status === 'cancelled' && oldStatus !== 'cancelled') {
+      // If the interview was booked from a slot, make the slot available again
+      if (interview.slot) {
+        const InterviewSlot = require('../models/InterviewSlot');
+        const slot = await InterviewSlot.findById(interview.slot);
+        
+        if (slot) {
+          slot.isBooked = false;
+          await slot.save();
+          console.log(`Slot ${slot._id} has been made available again after interview cancellation`);
+        }
+      }
+      
+      // Get candidate and interviewer details for email notification
+      try {
+        const candidate = await User.findById(interview.candidate);
+        const interviewer = await User.findById(interview.interviewer);
+        const admin = await User.findOne({ role: 'admin' });
+        const adminEmail = admin ? admin.email : process.env.ADMIN_EMAIL || 'admin@s30mocks.com';
+        
+        // Send email notifications
+        await sendInterviewCancellationNotification(interview, candidate, interviewer, adminEmail);
+        await sendInterviewCancellationConfirmation(interview, candidate, interviewer, adminEmail);
+      } catch (emailError) {
+        console.error('Error sending cancellation notification emails:', emailError);
+        // Continue with the response even if email fails
+      }
+    }
     
     res.json(interview);
   } catch (err) {
