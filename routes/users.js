@@ -92,7 +92,7 @@ router.put(
   ],
   async (req, res) => {
     try {
-      const { name, email, phone, linkedInUrl } = req.body;
+      const { name, email, phone, linkedInUrl, workExperiences, education } = req.body;
       
       // Check if email already exists for another user
       const existingUser = await User.findOne({ email });
@@ -105,10 +105,23 @@ router.put(
         return res.status(400).json({ message: 'Please provide a valid LinkedIn profile URL' });
       }
       
+      // Prepare update data
+      const updateData = { name, email, phone, linkedInUrl };
+      
+      // Add work experiences if provided
+      if (workExperiences) {
+        updateData.workExperiences = workExperiences;
+      }
+      
+      // Add education if provided
+      if (education) {
+        updateData.education = education;
+      }
+      
       // Update user
       const user = await User.findByIdAndUpdate(
         req.user.id,
-        { $set: { name, email, phone, linkedInUrl } },
+        { $set: updateData },
         { new: true }
       ).select('-password');
       
