@@ -92,7 +92,7 @@ router.put(
   ],
   async (req, res) => {
     try {
-      const { name, email, phone, linkedInUrl, workExperiences, education } = req.body;
+      const { name, email, phone, linkedInUrl, workExperiences, education, defaultMeetingLink } = req.body;
       
       // Check if email already exists for another user
       const existingUser = await User.findOne({ email });
@@ -116,6 +116,11 @@ router.put(
       // Add education if provided
       if (education) {
         updateData.education = education;
+      }
+      
+      // Add default meeting link if provided
+      if (defaultMeetingLink) {
+        updateData.defaultMeetingLink = defaultMeetingLink;
       }
       
       // Update user
