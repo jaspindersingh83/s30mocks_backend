@@ -15,6 +15,8 @@ router.post(
     admin,
     check('title', 'Title is required').not().isEmpty(),
     check('leetcodeUrl', 'LeetCode URL is required').not().isEmpty(),
+    check('solutionVideoUrl', 'Solution Video URL is required').not().isEmpty(),
+    check('difficulty', 'Difficulty must be easy, medium, or hard').isIn(['easy', 'medium', 'hard']),
     check('solutions', 'At least one solution is required').isArray({ min: 1 })
   ],
   problemController.createProblem
@@ -45,6 +47,8 @@ router.put(
     admin,
     check('title', 'Title is required').not().isEmpty(),
     check('leetcodeUrl', 'LeetCode URL is required').not().isEmpty(),
+    check('solutionVideoUrl', 'Solution Video URL is required').not().isEmpty(),
+    check('difficulty', 'Difficulty must be easy, medium, or hard').isIn(['easy', 'medium', 'hard']),
     check('solutions', 'At least one solution is required').isArray({ min: 1 })
   ],
   problemController.updateProblem

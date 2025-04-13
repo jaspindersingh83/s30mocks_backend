@@ -13,8 +13,6 @@ exports.createProblem = async (req, res) => {
     const { 
       title, 
       leetcodeUrl, 
-      solutionVideoUrl, 
-      difficulty, 
       solutions, 
       hints 
     } = req.body;
@@ -40,8 +38,6 @@ exports.createProblem = async (req, res) => {
     const problem = new Problem({
       title,
       leetcodeUrl,
-      solutionVideoUrl,
-      difficulty,
       solutions,
       hints: hints || []
     });
@@ -96,8 +92,6 @@ exports.updateProblem = async (req, res) => {
     const { 
       title, 
       leetcodeUrl, 
-      solutionVideoUrl, 
-      difficulty, 
       solutions, 
       hints 
     } = req.body;
@@ -129,8 +123,6 @@ exports.updateProblem = async (req, res) => {
     // Update problem fields
     problem.title = title;
     problem.leetcodeUrl = leetcodeUrl;
-    problem.solutionVideoUrl = solutionVideoUrl;
-    problem.difficulty = difficulty;
     problem.solutions = solutions;
     problem.hints = hints || [];
     
