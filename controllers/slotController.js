@@ -1,16 +1,16 @@
-const InterviewSlot = require('../models/InterviewSlot');
-const User = require('../models/User');
-const Interview = require('../models/Interview');
-const InterviewPrice = require('../models/InterviewPrice');
-const { validationResult } = require('express-validator');
-const { parse } = require('csv-parse/sync');
-const nodemailer = require('nodemailer');
-const { scheduleInterviewReminder } = require('../utils/scheduler');
-const { 
+const InterviewSlot = require("../models/InterviewSlot");
+const User = require("../models/User");
+const Interview = require("../models/Interview");
+const InterviewPrice = require("../models/InterviewPrice");
+const { validationResult } = require("express-validator");
+const { parse } = require("csv-parse/sync");
+const nodemailer = require("nodemailer");
+const { scheduleInterviewReminder } = require("../utils/scheduler");
+const {
   sendEmail,
   sendInterviewBookingNotification,
-  sendInterviewBookingConfirmation 
-} = require('../utils/email');
+  sendInterviewBookingConfirmation,
+} = require("../utils/email");
 
 // Create slots from Google Sheet data
 exports.createSlotsFromSheet = async (req, res) => {
@@ -21,11 +21,11 @@ exports.createSlotsFromSheet = async (req, res) => {
     }
 
     const { csvData } = req.body;
-    
+
     if (!csvData) {
-      return res.status(400).json({ message: 'CSV data is required' });
+      return res.status(400).json({ message: "CSV data is required" });
     }
-    
+
     // Parse CSV data
     // Expected format: interviewer_email,start_time,end_time
     // Example: interviewer@example.com,2023-04-10T10:00:00Z,2023-04-10T10:40:00Z
@@ -33,86 +33,98 @@ exports.createSlotsFromSheet = async (req, res) => {
     try {
       records = parse(csvData, {
         columns: true,
-        skip_empty_lines: true
+        skip_empty_lines: true,
       });
     } catch (err) {
-      return res.status(400).json({ message: 'Invalid CSV format', error: err.message });
+      return res
+        .status(400)
+        .json({ message: "Invalid CSV format", error: err.message });
     }
-    
+
     if (!records || records.length === 0) {
-      return res.status(400).json({ message: 'No valid records found in CSV data' });
+      return res
+        .status(400)
+        .json({ message: "No valid records found in CSV data" });
     }
-    
+
     const createdSlots = [];
     const processingErrors = [];
-    
+
     // Process each record
     for (const record of records) {
       try {
         const { interviewer_email, start_time, end_time } = record;
-        
+
         // Validate required fields
         if (!interviewer_email || !start_time || !end_time) {
-          processingErrors.push(`Missing required fields in record: ${JSON.stringify(record)}`);
+          processingErrors.push(
+            `Missing required fields in record: ${JSON.stringify(record)}`
+          );
           continue;
         }
-        
+
         // Find interviewer by email
-        const interviewer = await User.findOne({ 
+        const interviewer = await User.findOne({
           email: interviewer_email.trim().toLowerCase(),
-          role: 'interviewer'
+          role: "interviewer",
         });
-        
+
         if (!interviewer) {
-          processingErrors.push(`Interviewer not found with email: ${interviewer_email}`);
+          processingErrors.push(
+            `Interviewer not found with email: ${interviewer_email}`
+          );
           continue;
         }
-        
+
         // Create slot
         const startTime = new Date(start_time);
         const endTime = new Date(end_time);
-        
+
         // Validate times
         if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-          processingErrors.push(`Invalid date format in record: ${JSON.stringify(record)}`);
+          processingErrors.push(
+            `Invalid date format in record: ${JSON.stringify(record)}`
+          );
           continue;
         }
-        
+
         // Check if slot already exists
         const existingSlot = await InterviewSlot.findOne({
           interviewer: interviewer._id,
           startTime,
-          endTime
+          endTime,
         });
-        
+
         if (existingSlot) {
-          processingErrors.push(`Slot already exists for interviewer ${interviewer_email} at ${start_time}`);
+          processingErrors.push(
+            `Slot already exists for interviewer ${interviewer_email} at ${start_time}`
+          );
           continue;
         }
-        
+
         // Create new slot
         const slot = new InterviewSlot({
           interviewer: interviewer._id,
           startTime,
           endTime,
-          createdBy: req.user.id
+          createdBy: req.user.id,
         });
-        
+
         await slot.save();
         createdSlots.push(slot);
       } catch (err) {
         processingErrors.push(`Error processing record: ${err.message}`);
       }
     }
-    
+
     res.status(201).json({
       message: `Successfully created ${createdSlots.length} slots`,
       createdSlots,
-      errors: processingErrors.length > 0 ? processingErrors : undefined
+      errors: processingErrors.length > 0 ? processingErrors : undefined,
     });
   } catch (err) {
-    console.error('Error creating slots:', err);
-    res.status(500).send('Server error');
+    console.error("Error creating slots:", err);
+    res.status(500).send("Server error");
   }
 };
 
@@ -120,25 +132,25 @@ exports.createSlotsFromSheet = async (req, res) => {
 exports.getAvailableSlots = async (req, res) => {
   try {
     const { startDate, endDate, interviewerId, interviewType } = req.query;
-    
+
     // Build filter
     const filter = { isBooked: false };
-    
+
     // Add interviewer filter if provided
     if (interviewerId) {
       filter.interviewer = interviewerId;
     }
-    
+
     // Add interview type filter if provided
-    if (interviewType && ['DSA', 'System Design'].includes(interviewType)) {
+    if (interviewType && ["DSA", "System Design"].includes(interviewType)) {
       filter.interviewType = interviewType;
     }
-    
+
     // Add date range filter if provided
     if (startDate && endDate) {
-      filter.startTime = { 
+      filter.startTime = {
         $gte: new Date(startDate),
-        $lte: new Date(endDate)
+        $lte: new Date(endDate),
       };
     } else if (startDate) {
       filter.startTime = { $gte: new Date(startDate) };
@@ -148,24 +160,25 @@ exports.getAvailableSlots = async (req, res) => {
       // Default to future slots if no dates specified
       filter.startTime = { $gte: new Date() };
     }
-    
+
     // Get available slots
     const slots = await InterviewSlot.find(filter)
-      .populate('interviewer', 'name email')
+      //some text
+      .populate("interviewer", "name email linkedInUrl")
       .sort({ startTime: 1 });
-    
+
     // Get prices for each interview type
     const prices = await InterviewPrice.find();
     const priceMap = {};
-    prices.forEach(price => {
+    prices.forEach((price) => {
       priceMap[price.interviewType] = {
         price: price.price,
-        currency: price.currency
+        currency: price.currency,
       };
     });
-    
+
     // Add price information to each slot
-    const slotsWithPrices = slots.map(slot => {
+    const slotsWithPrices = slots.map((slot) => {
       const slotObj = slot.toObject();
       if (priceMap[slot.interviewType]) {
         slotObj.price = priceMap[slot.interviewType].price;
@@ -173,11 +186,11 @@ exports.getAvailableSlots = async (req, res) => {
       }
       return slotObj;
     });
-    
+
     res.json(slotsWithPrices);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).send("Server error");
   }
 };
 
@@ -185,44 +198,49 @@ exports.getAvailableSlots = async (req, res) => {
 exports.bookSlot = async (req, res) => {
   try {
     const { slotId } = req.params;
-    
+
     // Find the slot
     const slot = await InterviewSlot.findById(slotId);
     if (!slot) {
-      return res.status(404).json({ message: 'Slot not found' });
+      return res.status(404).json({ message: "Slot not found" });
     }
-    
+
     // Check if slot is already booked
     if (slot.isBooked) {
-      return res.status(400).json({ message: 'Slot is already booked' });
+      return res.status(400).json({ message: "Slot is already booked" });
     }
-    
+
     // Get the price for this interview type
-    const priceRecord = await InterviewPrice.findOne({ interviewType: slot.interviewType });
+    const priceRecord = await InterviewPrice.findOne({
+      interviewType: slot.interviewType,
+    });
     if (!priceRecord) {
-      return res.status(404).json({ message: `Price for ${slot.interviewType} interviews not found` });
+      return res.status(404).json({
+        message: `Price for ${slot.interviewType} interviews not found`,
+      });
     }
-    
+
     // Check if the candidate has any pending payments for previous interviews
     const pendingInterviews = await Interview.find({
       candidate: req.user.id,
-      status: { $ne: 'cancelled' },
-      paymentStatus: 'pending'
+      status: { $ne: "cancelled" },
+      paymentStatus: "pending",
     });
-    
+
     if (pendingInterviews.length > 0) {
-      return res.status(400).json({ 
-        message: 'You have pending payments for previous interviews. Please complete those payments before scheduling a new interview.',
-        pendingInterviews: pendingInterviews
+      return res.status(400).json({
+        message:
+          "You have pending payments for previous interviews. Please complete those payments before scheduling a new interview.",
+        pendingInterviews: pendingInterviews,
       });
     }
-    
+
     // Set duration based on interview type
-    const duration = slot.interviewType === 'DSA' ? 40 : 50;
+    const duration = slot.interviewType === "DSA" ? 40 : 50;
 
     // Find interviewer
     const interviewer = await User.findById(slot.interviewer);
-    
+
     // Create interview
     const interview = new Interview({
       candidate: req.user.id,
@@ -232,33 +250,45 @@ exports.bookSlot = async (req, res) => {
       duration: duration,
       price: priceRecord.price,
       currency: priceRecord.currency,
-      status: 'scheduled',
+      status: "scheduled",
       slot: slot._id, // Set the reference to the slot
-      meetingLink: interviewer?.defaultMeetingLink || 'ping support team in whatsapp for link'
+      meetingLink:
+        interviewer?.defaultMeetingLink ||
+        "ping support team in whatsapp for link",
     });
-    
+
     await interview.save();
-    
+
     // Update slot
     slot.isBooked = true;
     slot.interview = interview._id;
     await slot.save();
-    
+
     // Schedule email reminders for 30 minutes before the interview
     await scheduleInterviewReminder(interview._id);
-    
+
     // Get candidate and interviewer details for email notifications
     const candidate = await User.findById(req.user.id);
-    const adminEmail = process.env.ADMIN_EMAIL || 'jaspinder@thes30.com';
-    
+    const adminEmail = process.env.ADMIN_EMAIL || "jaspinder@thes30.com";
+
     // Send email notifications to all parties
     try {
       // Send notification to interviewer
-      await sendInterviewBookingNotification(interview, candidate, interviewer, adminEmail);
-      
+      await sendInterviewBookingNotification(
+        interview,
+        candidate,
+        interviewer,
+        adminEmail
+      );
+
       // Send confirmation to candidate
-      await sendInterviewBookingConfirmation(interview, candidate, interviewer, adminEmail);
-      
+      await sendInterviewBookingConfirmation(
+        interview,
+        candidate,
+        interviewer,
+        adminEmail
+      );
+
       // Send notification to admin (using the same template as interviewer)
       if (adminEmail && adminEmail !== interviewer.email) {
         await sendEmail(
@@ -269,13 +299,23 @@ exports.bookSlot = async (req, res) => {
             <p>Hello Admin,</p>
             <p>A new interview has been booked. Here are the details:</p>
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <p><strong>Candidate:</strong> ${candidate.name} (${candidate.email})</p>
-              <p><strong>Interviewer:</strong> ${interviewer.name} (${interviewer.email})</p>
-              <p><strong>Date & Time:</strong> ${new Date(interview.scheduledDate).toLocaleString()}</p>
+              <p><strong>Candidate:</strong> ${candidate.name} (${
+            candidate.email
+          })</p>
+              <p><strong>Interviewer:</strong> ${interviewer.name} (${
+            interviewer.email
+          })</p>
+              <p><strong>Date & Time:</strong> ${new Date(
+                interview.scheduledDate
+              ).toLocaleString()}</p>
               <p><strong>Duration:</strong> ${interview.duration} minutes</p>
               <p><strong>Interview Type:</strong> ${interview.interviewType}</p>
-              <p><strong>Price:</strong> ${interview.currency} ${interview.price}</p>
-              <p><strong>Meeting Link:</strong> ${interview.meetingLink || 'To be provided'}</p>
+              <p><strong>Price:</strong> ${interview.currency} ${
+            interview.price
+          }</p>
+              <p><strong>Meeting Link:</strong> ${
+                interview.meetingLink || "To be provided"
+              }</p>
             </div>
             <p>This is an automated notification for administrative purposes.</p>
             <p>Best regards,<br>S30 Mocks System</p>
@@ -292,7 +332,7 @@ Date & Time: ${new Date(interview.scheduledDate).toLocaleString()}
 Duration: ${interview.duration} minutes
 Interview Type: ${interview.interviewType}
 Price: ${interview.currency} ${interview.price}
-Meeting Link: ${interview.meetingLink || 'To be provided'}
+Meeting Link: ${interview.meetingLink || "To be provided"}
 
 This is an automated notification for administrative purposes.
 
@@ -300,21 +340,21 @@ Best regards,
 S30 Mocks System`
         );
       }
-      
-      console.log('Booking notification emails sent successfully');
+
+      console.log("Booking notification emails sent successfully");
     } catch (emailError) {
-      console.error('Error sending booking notification emails:', emailError);
+      console.error("Error sending booking notification emails:", emailError);
       // Continue with the response even if email sending fails
     }
-    
+
     res.json({
-      message: 'Slot booked successfully',
+      message: "Slot booked successfully",
       interview,
-      slot
+      slot,
     });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).send("Server error");
   }
 };
 
@@ -322,14 +362,14 @@ S30 Mocks System`
 exports.getAllSlots = async (req, res) => {
   try {
     const slots = await InterviewSlot.find()
-      .populate('interviewer', 'name email')
-      .populate('interview')
+      .populate("interviewer", "name email")
+      .populate("interview")
       .sort({ startTime: 1 });
-    
+
     res.json(slots);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).send("Server error");
   }
 };
 
@@ -337,25 +377,25 @@ exports.getAllSlots = async (req, res) => {
 exports.deleteSlot = async (req, res) => {
   try {
     const { slotId } = req.params;
-    
+
     // Find the slot
     const slot = await InterviewSlot.findById(slotId);
     if (!slot) {
-      return res.status(404).json({ message: 'Slot not found' });
+      return res.status(404).json({ message: "Slot not found" });
     }
-    
+
     // Check if slot is booked
     if (slot.isBooked) {
-      return res.status(400).json({ message: 'Cannot delete a booked slot' });
+      return res.status(400).json({ message: "Cannot delete a booked slot" });
     }
-    
+
     // Delete the slot
     await InterviewSlot.findByIdAndDelete(slotId);
-    
-    res.json({ message: 'Slot deleted successfully' });
+
+    res.json({ message: "Slot deleted successfully" });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).send("Server error");
   }
 };
 
@@ -363,93 +403,112 @@ exports.deleteSlot = async (req, res) => {
 exports.createInterviewerSlot = async (req, res) => {
   try {
     const { startTime, endTime, interviewType } = req.body;
-    
+
     // Validate input
     if (!startTime || !endTime) {
-      return res.status(400).json({ message: 'Start time and end time are required' });
+      return res
+        .status(400)
+        .json({ message: "Start time and end time are required" });
     }
-    
+
     // Validate interview type
     if (!interviewType) {
-      return res.status(400).json({ message: 'Interview type is required' });
+      return res.status(400).json({ message: "Interview type is required" });
     }
-    
-    if (!['DSA', 'System Design'].includes(interviewType)) {
-      return res.status(400).json({ message: 'Interview type must be either DSA or System Design' });
+
+    if (!["DSA", "System Design"].includes(interviewType)) {
+      return res.status(400).json({
+        message: "Interview type must be either DSA or System Design",
+      });
     }
-    
+
     // Check if user is an interviewer
-    if (req.user.role !== 'interviewer' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Only interviewers can create slots' });
+    if (req.user.role !== "interviewer" && req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Only interviewers can create slots" });
     }
-    
+
     const start = new Date(startTime);
     const end = new Date(endTime);
-    
+
     // Validate times
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return res.status(400).json({ message: 'Invalid date format' });
+      return res.status(400).json({ message: "Invalid date format" });
     }
-    
+
     // We no longer require full hour validation
     // Just log the time for debugging purposes
-    console.log('Slot creation time:', {
+    console.log("Slot creation time:", {
       hours: start.getHours(),
       minutes: start.getMinutes(),
       seconds: start.getSeconds(),
-      milliseconds: start.getMilliseconds()
+      milliseconds: start.getMilliseconds(),
     });
-    
+
     // Ensure start time is in the future
     if (start < new Date()) {
-      return res.status(400).json({ message: 'Start time must be in the future' });
+      return res
+        .status(400)
+        .json({ message: "Start time must be in the future" });
     }
-    
+
     // Ensure end time is after start time
     if (end <= start) {
-      return res.status(400).json({ message: 'End time must be after start time' });
+      return res
+        .status(400)
+        .json({ message: "End time must be after start time" });
     }
-    
+
     // Validate duration based on interview type
     const durationMinutes = (end - start) / (1000 * 60);
-    if (interviewType === 'DSA' && Math.abs(durationMinutes - 40) > 1) {
-      return res.status(400).json({ message: 'DSA interview slots must be 40 minutes' });
+    if (interviewType === "DSA" && Math.abs(durationMinutes - 40) > 1) {
+      return res
+        .status(400)
+        .json({ message: "DSA interview slots must be 40 minutes" });
     }
-    if (interviewType === 'System Design' && Math.abs(durationMinutes - 50) > 1) {
-      return res.status(400).json({ message: 'System Design interview slots must be 50 minutes' });
+    if (
+      interviewType === "System Design" &&
+      Math.abs(durationMinutes - 50) > 1
+    ) {
+      return res
+        .status(400)
+        .json({ message: "System Design interview slots must be 50 minutes" });
     }
-    
+
     // Check if slot already exists
     const existingSlot = await InterviewSlot.findOne({
       interviewer: req.user.id,
       $or: [
         // Check if new slot overlaps with existing slots
-        { startTime: { $lt: end }, endTime: { $gt: start } }
-      ]
+        { startTime: { $lt: end }, endTime: { $gt: start } },
+      ],
     });
-    
+
     if (existingSlot) {
-      return res.status(400).json({ message: 'Slot overlaps with an existing slot' });
+      return res
+        .status(400)
+        .json({ message: "Slot overlaps with an existing slot" });
     }
-    
+
     // Create new slot
     const slot = new InterviewSlot({
       interviewer: req.user.id,
       startTime: start,
       endTime: end,
       interviewType,
-      createdBy: req.user.id
+      createdBy: req.user.id,
     });
-    
+
     await slot.save();
-    
+
     res.status(201).json({
-      message: 'Slot created successfully',
-      slot
+      message: "Slot created successfully",
+      slot,
     });
   } catch (err) {
-    console.error('Error creating slot:', err);
-    res.status(500).send('Server error');
+    console.error("Error creating slot:", err);
+    res.status(500).send("Server error");
   }
 };
 
@@ -457,15 +516,15 @@ exports.createInterviewerSlot = async (req, res) => {
 exports.getInterviewerSlots = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    
+
     // Build filter
     const filter = { interviewer: req.user.id };
-    
+
     // Add date range filter if provided
     if (startDate && endDate) {
-      filter.startTime = { 
+      filter.startTime = {
         $gte: new Date(startDate),
-        $lte: new Date(endDate)
+        $lte: new Date(endDate),
       };
     } else if (startDate) {
       filter.startTime = { $gte: new Date(startDate) };
@@ -475,16 +534,16 @@ exports.getInterviewerSlots = async (req, res) => {
       // Default to future slots if no dates specified
       filter.startTime = { $gte: new Date() };
     }
-    
+
     // Get slots
     const slots = await InterviewSlot.find(filter)
-      .populate('interview', 'candidate status')
+      .populate("interview", "candidate status")
       .sort({ startTime: 1 });
-    
+
     res.json(slots);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).send("Server error");
   }
 };
 
@@ -492,43 +551,56 @@ exports.getInterviewerSlots = async (req, res) => {
 exports.createBatchSlots = async (req, res) => {
   try {
     const { interviewType, slots } = req.body;
-    
+
     // Validate input
-    if (!interviewType || !slots || !Array.isArray(slots) || slots.length === 0) {
-      return res.status(400).json({ message: 'Interview type and slots array are required' });
+    if (
+      !interviewType ||
+      !slots ||
+      !Array.isArray(slots) ||
+      slots.length === 0
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Interview type and slots array are required" });
     }
-    
+
     // Validate interview type
-    if (!['DSA', 'System Design'].includes(interviewType)) {
-      return res.status(400).json({ message: 'Interview type must be either DSA or System Design' });
+    if (!["DSA", "System Design"].includes(interviewType)) {
+      return res.status(400).json({
+        message: "Interview type must be either DSA or System Design",
+      });
     }
-    
+
     // Check if user is an interviewer
-    if (req.user.role !== 'interviewer' && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Only interviewers can create slots' });
+    if (req.user.role !== "interviewer" && req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Only interviewers can create slots" });
     }
-    
+
     // Validate each slot's start and end times
     for (const slot of slots) {
       const start = new Date(slot.start);
       const end = new Date(slot.end);
-      
+
       // Validate times
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        return res.status(400).json({ message: 'Invalid start or end time' });
+        return res.status(400).json({ message: "Invalid start or end time" });
       }
-      
+
       // Check if start time is before end time
       if (start >= end) {
-        return res.status(400).json({ message: 'Start time must be before end time' });
+        return res
+          .status(400)
+          .json({ message: "Start time must be before end time" });
       }
-      
+
       // Check if the slot is in the future
       if (start <= new Date()) {
-        return res.status(400).json({ message: 'Slots must be in the future' });
+        return res.status(400).json({ message: "Slots must be in the future" });
       }
     }
-    
+
     // Create all slots
     const createdSlots = [];
     for (const slot of slots) {
@@ -537,20 +609,20 @@ exports.createBatchSlots = async (req, res) => {
         startTime: slot.start,
         endTime: slot.end,
         interviewType,
-        status: 'available'
+        status: "available",
       });
-      
+
       await newSlot.save();
       createdSlots.push(newSlot);
     }
-    
+
     res.status(201).json({
       message: `Successfully created ${createdSlots.length} slots`,
-      slots: createdSlots
+      slots: createdSlots,
     });
   } catch (err) {
-    console.error('Error creating batch slots:', err.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Error creating batch slots:", err.message);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -558,31 +630,33 @@ exports.createBatchSlots = async (req, res) => {
 exports.deleteInterviewerSlot = async (req, res) => {
   try {
     const { slotId } = req.params;
-    
+
     // Find the slot
     const slot = await InterviewSlot.findById(slotId);
-    
+
     if (!slot) {
-      return res.status(404).json({ message: 'Slot not found' });
+      return res.status(404).json({ message: "Slot not found" });
     }
-    
+
     // Check if user is the interviewer who created the slot
     if (slot.interviewer.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized to delete this slot' });
+      return res
+        .status(403)
+        .json({ message: "Not authorized to delete this slot" });
     }
-    
+
     // Check if slot is already booked
     if (slot.isBooked) {
-      return res.status(400).json({ message: 'Cannot delete a booked slot' });
+      return res.status(400).json({ message: "Cannot delete a booked slot" });
     }
-    
+
     // Delete the slot
     await InterviewSlot.findByIdAndDelete(slotId);
-    
-    res.json({ message: 'Slot deleted successfully' });
+
+    res.json({ message: "Slot deleted successfully" });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).send("Server error");
   }
 };
 
@@ -590,50 +664,52 @@ exports.deleteInterviewerSlot = async (req, res) => {
 async function scheduleReminderEmail(interviewId) {
   try {
     const interview = await Interview.findById(interviewId)
-      .populate('candidate', 'name email emailNotifications')
-      .populate('interviewer', 'name email emailNotifications');
-    
+      .populate("candidate", "name email emailNotifications")
+      .populate("interviewer", "name email emailNotifications");
+
     if (!interview) {
       console.error(`Interview not found with ID: ${interviewId}`);
       return;
     }
-    
+
     const interviewTime = new Date(interview.scheduledDate);
     const reminderTime = new Date(interviewTime.getTime() - 30 * 60 * 1000); // 30 minutes before
-    
+
     // Calculate delay until reminder time
     const now = new Date();
     const delay = reminderTime.getTime() - now.getTime();
-    
+
     if (delay <= 0) {
-      console.log('Interview is too soon for a reminder');
+      console.log("Interview is too soon for a reminder");
       return;
     }
-    
+
     // Schedule reminder
     setTimeout(async () => {
       try {
         // Fetch fresh interview data in case it was updated
         const updatedInterview = await Interview.findById(interviewId)
-          .populate('candidate', 'name email emailNotifications')
-          .populate('interviewer', 'name email emailNotifications')
-          .populate('problem');
-        
-        if (!updatedInterview || updatedInterview.status === 'cancelled') {
-          console.log('Interview cancelled or not found, skipping reminder');
+          .populate("candidate", "name email emailNotifications")
+          .populate("interviewer", "name email emailNotifications")
+          .populate("problem");
+
+        if (!updatedInterview || updatedInterview.status === "cancelled") {
+          console.log("Interview cancelled or not found, skipping reminder");
           return;
         }
-        
+
         // Send emails
         await sendReminderEmail(updatedInterview);
       } catch (err) {
-        console.error('Error sending reminder email:', err);
+        console.error("Error sending reminder email:", err);
       }
     }, delay);
-    
-    console.log(`Reminder scheduled for interview ${interviewId} at ${reminderTime}`);
+
+    console.log(
+      `Reminder scheduled for interview ${interviewId} at ${reminderTime}`
+    );
   } catch (err) {
-    console.error('Error scheduling reminder:', err);
+    console.error("Error scheduling reminder:", err);
   }
 }
 
@@ -641,29 +717,30 @@ async function scheduleReminderEmail(interviewId) {
 async function sendReminderEmail(interview) {
   // This would typically use a proper email service like SendGrid, Mailgun, etc.
   // For demonstration purposes, we'll just log the email content
-  
+
   // Check if users have email notifications enabled
   const candidateWantsEmails = interview.candidate.emailNotifications !== false;
-  const interviewerWantsEmails = interview.interviewer.emailNotifications !== false;
-  
+  const interviewerWantsEmails =
+    interview.interviewer.emailNotifications !== false;
+
   if (!candidateWantsEmails && !interviewerWantsEmails) {
-    console.log('Both users have disabled email notifications');
+    console.log("Both users have disabled email notifications");
     return;
   }
-  
+
   const interviewDate = new Date(interview.scheduledDate);
-  const formattedDate = interviewDate.toLocaleString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  const formattedDate = interviewDate.toLocaleString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
-  
+
   // In a real implementation, you would use an email service here
-  console.log('Sending reminder emails for interview:', interview._id);
-  
+  console.log("Sending reminder emails for interview:", interview._id);
+
   if (candidateWantsEmails) {
     console.log(`To: ${interview.candidate.email}`);
     console.log(`Subject: Reminder: Your mock interview is in 30 minutes`);
@@ -681,10 +758,12 @@ async function sendReminderEmail(interview) {
       The Mock Interview Team
     `);
   }
-  
+
   if (interviewerWantsEmails) {
     console.log(`To: ${interview.interviewer.email}`);
-    console.log(`Subject: Reminder: You have an interview to conduct in 30 minutes`);
+    console.log(
+      `Subject: Reminder: You have an interview to conduct in 30 minutes`
+    );
     console.log(`Body: 
       Hello ${interview.interviewer.name},
       
@@ -692,7 +771,11 @@ async function sendReminderEmail(interview) {
       
       Candidate: ${interview.candidate.name}
       Meeting link: ${interview.meetingLink}
-      ${interview.problem ? `Problem: ${interview.problem.title}` : 'No problem assigned yet'}
+      ${
+        interview.problem
+          ? `Problem: ${interview.problem.title}`
+          : "No problem assigned yet"
+      }
       
       Please be ready on time and ensure your camera and microphone are working properly.
       
