@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const UserSchema = new mongoose.Schema({
   email: {
@@ -7,69 +7,96 @@ const UserSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true,
-    lowercase: true
+    lowercase: true,
   },
   password: {
     type: String,
-    required: function() {
+    required: function () {
       return !this.googleId; // Password is required only if not using Google Auth
-    }
+    },
   },
   name: {
     type: String,
-    required: true
+    required: true,
   },
   role: {
     type: String,
-    enum: ['candidate', 'interviewer', 'admin'],
-    default: 'candidate'
+    enum: ["candidate", "interviewer", "admin"],
+    default: "candidate",
   },
   googleId: {
-    type: String
+    type: String,
   },
   picture: {
-    type: String
+    type: String,
   },
   upiId: {
-    type: String
+    type: String,
   },
   qrCodeUrl: {
-    type: String
+    type: String,
   },
   phone: {
-    type: String
+    type: String,
   },
   linkedInUrl: {
-    type: String
+    type: String,
   },
   emailNotifications: {
     type: Boolean,
-    default: true
+    default: true,
   },
   averageRating: {
     type: Number,
     default: 0,
     min: 0,
-    max: 5
+    max: 5,
   },
   ratingsCount: {
     type: Number,
-    default: 0
+    default: 0,
   },
   defaultMeetingLink: {
-    type: String
+    type: String,
   },
+  isEmailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  verificationToken: String,
+  verificationTokenExpires: Date,
+  workExperiences: [
+    {
+      company: String,
+      position: String,
+      startDate: Date,
+      endDate: Date,
+      current: Boolean,
+      description: String,
+    },
+  ],
+  education: [
+    {
+      school: String,
+      degree: String,
+      fieldOfStudy: String,
+      startYear: String,
+      endYear: String,
+      current: Boolean,
+      description: String,
+    },
+  ],
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 // Hash password before saving
-UserSchema.pre('save', async function(next) {
+UserSchema.pre("save", async function (next) {
   // Skip hashing if password is not modified or if using Google Auth
-  if (!this.isModified('password') || this.googleId) return next();
-  
+  if (!this.isModified("password") || this.googleId) return next();
+
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -80,10 +107,10 @@ UserSchema.pre('save', async function(next) {
 });
 
 // Method to compare passwords
-UserSchema.methods.comparePassword = async function(candidatePassword) {
+UserSchema.methods.comparePassword = async function (candidatePassword) {
   // If using Google Auth and no password is set, deny password login
   if (this.googleId && !this.password) return false;
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = mongoose.model("User", UserSchema);
