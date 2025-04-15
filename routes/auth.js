@@ -128,7 +128,26 @@ router.post(
         { expiresIn: "24h" },
         (err, token) => {
           if (err) throw err;
-          res.json({ token });
+          
+          // Set cookie for cross-domain auth (same as Google OAuth)
+          res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+            maxAge: 24 * 60 * 60 * 1000
+          });
+          
+          // Return token and user info (same format as Google OAuth)
+          res.json({
+            token,
+            user: {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              role: user.role,
+              isEmailVerified: user.isEmailVerified
+            }
+          });
         }
       );
     } catch (err) {
