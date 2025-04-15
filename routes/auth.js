@@ -248,6 +248,53 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
+// @route   GET api/auth/me
+// @desc    Get current user with token
+// @access  Private
+router.get("/me", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Return user data in the format expected by the client
+    res.json({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+        picture: user.picture
+      }
+    });
+  } catch (err) {
+    console.error("Error in /api/auth/me:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   POST api/auth/logout
+// @desc    Logout user by clearing cookies
+// @access  Private
+router.post("/logout", auth, async (req, res) => {
+  try {
+    // Clear the token cookie
+    res.cookie("token", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      expires: new Date(0) // Set expiration to the past
+    });
+    
+    res.json({ message: "Logged out successfully" });
+  } catch (err) {
+    console.error("Error in /api/auth/logout:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // @route   POST api/auth/google
 // @desc    Authenticate with Google
 // @access  Public
