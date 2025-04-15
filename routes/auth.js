@@ -6,6 +6,7 @@ const { check, validationResult } = require("express-validator");
 const auth = require("../middleware/auth");
 const User = require("../models/User");
 const crypto = require("crypto");
+const { OAuth2Client } = require("google-auth-library");
 const {
   sendVerificationEmail,
   sendVerificationSuccessEmail,
@@ -225,6 +226,99 @@ router.get("/", auth, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server error");
+  }
+});
+
+// @route   POST api/auth/google
+// @desc    Authenticate with Google
+// @access  Public
+router.post("/google", async (req, res) => {
+  try {
+    // Get token from request (could be in different formats based on Google OAuth library)
+    const { credential, token, tokenId } = req.body;
+    const idToken = credential || token || tokenId;
+    
+    if (!idToken) {
+      return res.status(400).json({ message: "No Google token provided" });
+    }
+
+    // Initialize Google OAuth client
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    
+    // Verify the token
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    
+    const payload = ticket.getPayload();
+    const { email, name, picture, sub: googleId } = payload;
+    
+    // Check if user exists
+    let user = await User.findOne({ email });
+    
+    if (!user) {
+      // Create new user if not exists
+      user = new User({
+        name,
+        email,
+        googleId,
+        picture,
+        role: "candidate",
+        isEmailVerified: true // Google emails are already verified
+      });
+      
+      await user.save();
+    } else {
+      // Update existing user with Google info if needed
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.picture = picture || user.picture;
+        user.isEmailVerified = true;
+        await user.save();
+      }
+    }
+    
+    // Generate JWT
+    const jwtPayload = {
+      user: {
+        id: user.id,
+        role: user.role
+      }
+    };
+    
+    jwt.sign(
+      jwtPayload,
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" },
+      (err, token) => {
+        if (err) throw err;
+        
+        // Set cookie for cross-domain auth
+        res.cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+          maxAge: 24 * 60 * 60 * 1000
+        });
+        
+        // Return token and user info
+        res.json({
+          token,
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            picture: user.picture,
+            isEmailVerified: user.isEmailVerified
+          }
+        });
+      }
+    );
+  } catch (err) {
+    console.error("Google auth error:", err.message);
+    res.status(500).json({ message: "Server error during Google authentication" });
   }
 });
 
