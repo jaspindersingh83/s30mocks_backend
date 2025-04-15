@@ -12,8 +12,8 @@ mongoose.connect(
 ).then(async () => {
   try {
     const User = require('../models/User');
-    const email = 'jaspinder@thes30.com';
-    const password = 'Jaspinder$123';
+    const email = 'user@example.com'; // Replace with actual email when using
+    const password = 'ExamplePassword123'; // Replace with actual password when using
     
     // Find the user
     const user = await User.findOne({ email });

@@ -15,8 +15,8 @@ const User = require('../models/User');
 
 const resetPassword = async () => {
   try {
-    const email = 'jaspinder@thes30.com';
-    const newPassword = 'Jaspinder$123';
+    const email = 'user@example.com'; // Replace with actual email when using
+    const newPassword = 'ExamplePassword123'; // Replace with actual password when using
     
     // Find the user
     const user = await User.findOne({ email });

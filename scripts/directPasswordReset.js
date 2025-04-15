@@ -14,8 +14,8 @@ mongoose.connect(
 // Direct update without using the User model's pre-save hooks
 const directPasswordReset = async () => {
   try {
-    const email = 'jaspinder@thes30.com';
-    const newPassword = 'Jaspinder$123';
+    const email = 'user@example.com'; // Replace with actual email when using
+    const newPassword = 'ExamplePassword123'; // Replace with actual password when using
     
     // Generate salt and hash password
     const salt = await bcrypt.genSalt(10);
