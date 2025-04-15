@@ -883,6 +883,51 @@ const sendVerificationSuccessEmail = async (user) => {
   return await sendEmail(user.email, subject, htmlBody, textBody);
 };
 
+/**
+ * Send password reset email to user
+ * @param {String} email - User's email address
+ * @param {String} resetToken - Password reset token
+ * @returns {Promise} - Promise that resolves to the SES response
+ */
+const sendPasswordResetEmail = async (email, resetToken) => {
+  const clientUrl = process.env.NODE_ENV === 'production'
+    ? 'https://s30mocks.vercel.app'
+    : 'http://localhost:3000';
+
+  const resetLink = `${clientUrl}/reset-password/${resetToken}`;
+
+  const subject = 'Reset Your S30 Mocks Password';
+
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #333;">Reset Your Password</h2>
+      <p>You requested a password reset for your S30 Mocks account.</p>
+      <p>Please click the button below to reset your password. This link is valid for 1 hour.</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetLink}" style="background-color: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">Reset Password</a>
+      </div>
+      <p>If you didn't request this password reset, you can safely ignore this email.</p>
+      <p>If the button above doesn't work, copy and paste this link into your browser:</p>
+      <p style="word-break: break-all;">${resetLink}</p>
+      <hr style="border: 1px solid #eee; margin: 20px 0;">
+      <p style="color: #777; font-size: 12px;">© ${new Date().getFullYear()} S30 Mocks. All rights reserved.</p>
+    </div>
+  `;
+
+  const textBody = `
+    Reset Your Password
+    
+    You requested a password reset for your S30 Mocks account.
+    
+    Please visit the following link to reset your password (valid for 1 hour):
+    ${resetLink}
+    
+    If you didn't request this password reset, you can safely ignore this email.
+  `;
+
+  return sendEmail(email, subject, htmlBody, textBody);
+};
+
 module.exports = {
   sendEmail,
   sendFeedbackNotification,
@@ -895,4 +940,5 @@ module.exports = {
   sendPaymentVerificationConfirmation,
   sendVerificationEmail,
   sendVerificationSuccessEmail,
+  sendPasswordResetEmail,
 };

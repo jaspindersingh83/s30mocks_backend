@@ -65,6 +65,8 @@ const UserSchema = new mongoose.Schema({
   },
   verificationToken: String,
   verificationTokenExpires: Date,
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
   workExperiences: [
     {
       company: String,

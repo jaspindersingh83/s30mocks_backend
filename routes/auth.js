@@ -2,14 +2,15 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const { check, validationResult } = require("express-validator");
 const auth = require("../middleware/auth");
 const User = require("../models/User");
-const crypto = require("crypto");
 const { OAuth2Client } = require("google-auth-library");
-const {
-  sendVerificationEmail,
+const { 
+  sendVerificationEmail, 
   sendVerificationSuccessEmail,
+  sendPasswordResetEmail 
 } = require("../utils/email");
 
 // @route   POST api/auth/register
@@ -294,6 +295,92 @@ router.post("/logout", auth, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+// @route   POST api/auth/forgot-password
+// @desc    Send password reset email
+// @access  Public
+router.post(
+  "/forgot-password",
+  [
+    check("email", "Please include a valid email").isEmail(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { email } = req.body;
+
+      // Find user by email
+      const user = await User.findOne({ email });
+      if (!user) {
+        // For security, don't reveal that the email doesn't exist
+        return res.json({ message: "If your email is registered, you will receive a password reset link" });
+      }
+
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString("hex");
+      const resetTokenExpires = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
+
+      // Save token to user
+      user.resetPasswordToken = resetToken;
+      user.resetPasswordExpires = resetTokenExpires;
+      await user.save();
+
+      // Send reset email
+      await sendPasswordResetEmail(user.email, resetToken);
+
+      res.json({ message: "If your email is registered, you will receive a password reset link" });
+    } catch (err) {
+      console.error("Error in forgot-password:", err.message);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// @route   POST api/auth/reset-password/:token
+// @desc    Reset password with token
+// @access  Public
+router.post(
+  "/reset-password/:token",
+  [
+    check("password", "Please enter a password with 6 or more characters").isLength({ min: 6 }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { password } = req.body;
+      const { token } = req.params;
+
+      // Find user with valid reset token
+      const user = await User.findOne({
+        resetPasswordToken: token,
+        resetPasswordExpires: { $gt: Date.now() },
+      });
+
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      // Update password
+      user.password = password;
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save();
+
+      res.json({ message: "Password has been reset successfully. You can now log in with your new password." });
+    } catch (err) {
+      console.error("Error in reset-password:", err.message);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
 
 // @route   POST api/auth/google
 // @desc    Authenticate with Google
