@@ -12,12 +12,21 @@ const {
   sendVerificationSuccessEmail,
   sendPasswordResetEmail 
 } = require("../utils/email");
+const { verifyRecaptcha } = require("../utils/recaptcha");
+const {
+  registerLimiter,
+  loginLimiter,
+  speedLimiter,
+  passwordResetLimiter,
+  resendVerificationLimiter
+} = require("../middleware/rateLimiter");
 
 // @route   POST api/auth/register
 // @desc    Register a user
 // @access  Public
 router.post(
   "/register",
+  registerLimiter, // Apply rate limiting
   [
     check("name", "Name is required").not().isEmpty(),
     check("email", "Please include a valid email").isEmail(),
@@ -25,6 +34,7 @@ router.post(
       "password",
       "Please enter a password with 6 or more characters"
     ).isLength({ min: 6 }),
+    check("recaptchaToken", "reCAPTCHA verification is required").not().isEmpty(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -32,9 +42,18 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, recaptchaToken } = req.body;
 
     try {
+      // Verify reCAPTCHA token
+      const recaptchaResult = await verifyRecaptcha(recaptchaToken);
+      if (!recaptchaResult.success) {
+        return res.status(400).json({ 
+          message: "reCAPTCHA verification failed", 
+          errors: recaptchaResult['error-codes'] 
+        });
+      }
+      
       // Check if user exists
       let user = await User.findOne({ email });
       if (user) {
@@ -81,6 +100,8 @@ router.post(
 // @access  Public
 router.post(
   "/login",
+  loginLimiter, // Apply rate limiting
+  speedLimiter, // Apply speed limiting
   [
     check("email", "Please include a valid email").isEmail(),
     check("password", "Password is required").exists(),
@@ -197,6 +218,7 @@ router.get("/verify-email/:token", async (req, res) => {
 // @access  Public
 router.post(
   "/resend-verification",
+  resendVerificationLimiter, // Apply rate limiting
   [check("email", "Please include a valid email").isEmail()],
   async (req, res) => {
     const errors = validationResult(req);
@@ -301,6 +323,7 @@ router.post("/logout", auth, async (req, res) => {
 // @access  Public
 router.post(
   "/forgot-password",
+  passwordResetLimiter, // Apply rate limiting
   [
     check("email", "Please include a valid email").isEmail(),
   ],
