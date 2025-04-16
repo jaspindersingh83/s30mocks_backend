@@ -45,14 +45,18 @@ router.post(
     const { name, email, password, role, recaptchaToken } = req.body;
 
     try {
-      // Verify reCAPTCHA token
-      const recaptchaResult = await verifyRecaptcha(recaptchaToken);
-      if (!recaptchaResult.success) {
-        return res.status(400).json({ 
-          message: "reCAPTCHA verification failed", 
-          errors: recaptchaResult['error-codes'] 
-        });
+      // reCAPTCHA verification temporarily bypassed
+      // Only check if token is not the special bypass value
+      if (recaptchaToken !== 'bypass') {
+        const recaptchaResult = await verifyRecaptcha(recaptchaToken);
+        if (!recaptchaResult.success) {
+          return res.status(400).json({ 
+            message: "reCAPTCHA verification failed", 
+            errors: recaptchaResult['error-codes'] 
+          });
+        }
       }
+      // If token is 'bypass', skip verification
       
       // Check if user exists
       let user = await User.findOne({ email });

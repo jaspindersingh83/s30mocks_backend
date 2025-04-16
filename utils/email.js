@@ -24,15 +24,7 @@ const formatDateWithTimezone = (dateString, timezone) => {
   
   return DateTime.fromISO(new Date(dateString).toISOString())
     .setZone(tz)
-    .toLocaleString({
-      weekday: 'short',
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZoneName: 'short'
-    });
+    .toFormat("EEEE, MMMM d, yyyy 'at' h:mm a (z)");
 };
 
 /**
@@ -284,7 +276,7 @@ const sendInterviewReminder = async (
     <p>Interview Details:</p>
     <ul>
       <li>Type: ${interview.interviewType}</li>
-      <li>Time: ${new Date(interview.scheduledDate).toLocaleString()}</li>
+      <li>Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</li>
       <li>Duration: ${interview.duration} minutes</li>
       ${
         interview.meetingLink
@@ -310,7 +302,7 @@ const sendInterviewReminder = async (
     <p>Interview Details:</p>
     <ul>
       <li>Type: ${interview.interviewType}</li>
-      <li>Time: ${new Date(interview.scheduledDate).toLocaleString()}</li>
+      <li>Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</li>
       <li>Duration: ${interview.duration} minutes</li>
       ${
         interview.meetingLink
@@ -335,7 +327,7 @@ const sendInterviewReminder = async (
       <li>Candidate: ${candidate.name} (${candidate.email})</li>
       <li>Interviewer: ${interviewer.name} (${interviewer.email})</li>
       <li>Type: ${interview.interviewType}</li>
-      <li>Time: ${new Date(interview.scheduledDate).toLocaleString()}</li>
+      <li>Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</li>
       <li>Duration: ${interview.duration} minutes</li>
     </ul>
   `;
@@ -351,7 +343,7 @@ const sendInterviewReminder = async (
     
     Interview Details:
     - Type: ${interview.interviewType}
-    - Time: ${new Date(interview.scheduledDate).toLocaleString()}
+    - Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
     - Duration: ${interview.duration} minutes
     ${interview.meetingLink ? `- Meeting Link: ${interview.meetingLink}` : ""}
     ${
@@ -376,7 +368,7 @@ const sendInterviewReminder = async (
     
     Interview Details:
     - Type: ${interview.interviewType}
-    - Time: ${new Date(interview.scheduledDate).toLocaleString()}
+    - Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
     - Duration: ${interview.duration} minutes
     ${interview.meetingLink ? `- Meeting Link: ${interview.meetingLink}` : ""}
     ${
@@ -399,7 +391,7 @@ const sendInterviewReminder = async (
     - Candidate: ${candidate.name} (${candidate.email})
     - Interviewer: ${interviewer.name} (${interviewer.email})
     - Type: ${interview.interviewType}
-    - Time: ${new Date(interview.scheduledDate).toLocaleString()}
+    - Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
     - Duration: ${interview.duration} minutes
   `;
 
