@@ -798,7 +798,7 @@ const sendPaymentVerificationConfirmation = async (
  * @returns {Promise} - Promise that resolves to the SES response
  */
 const sendVerificationEmail = async (user, verificationToken) => {
-  const verificationLink = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+  const verificationLink = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
 
   const subject = "Verify Your Email - S30 Mocks";
 
@@ -855,7 +855,7 @@ const sendVerificationSuccessEmail = async (user) => {
       <p>Hello ${user.name},</p>
       <p>Your email has been successfully verified. You can now log in to your S30 Mocks account and access all features.</p>
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${process.env.FRONTEND_URL}/login" 
+        <a href="${process.env.CLIENT_URL}/login" 
            style="background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
           Login to Your Account
         </a>
@@ -872,7 +872,7 @@ const sendVerificationSuccessEmail = async (user) => {
     
     Your email has been successfully verified. You can now log in to your S30 Mocks account and access all features.
     
-    Login here: ${process.env.FRONTEND_URL}/login
+    Login here: ${process.env.CLIENT_URL}/login
     
     Thank you for choosing S30 Mocks!
     
