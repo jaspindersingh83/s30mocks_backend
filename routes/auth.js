@@ -167,7 +167,9 @@ router.post(
               name: user.name,
               email: user.email,
               role: user.role,
-              isEmailVerified: user.isEmailVerified
+              isEmailVerified: user.isEmailVerified,
+              linkedInUrl: user.linkedInUrl,
+              defaultMeetingLink: user.defaultMeetingLink
             }
           });
         }
@@ -289,7 +291,9 @@ router.get("/me", auth, async (req, res) => {
         email: user.email,
         role: user.role,
         isEmailVerified: user.isEmailVerified,
-        picture: user.picture
+        picture: user.picture,
+        linkedInUrl: user.linkedInUrl,
+        defaultMeetingLink: user.defaultMeetingLink
       }
     });
   } catch (err) {
@@ -487,7 +491,9 @@ router.post("/google", async (req, res) => {
             email: user.email,
             role: user.role,
             picture: user.picture,
-            isEmailVerified: user.isEmailVerified
+            isEmailVerified: user.isEmailVerified,
+            linkedInUrl: user.linkedInUrl,
+            defaultMeetingLink: user.defaultMeetingLink
           }
         });
       }
