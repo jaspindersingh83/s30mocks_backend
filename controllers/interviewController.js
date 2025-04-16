@@ -104,10 +104,8 @@ exports.getInterviews = async (req, res) => {
     
     // Execute the query with filters
     const interviews = await Interview.find(query)
-      .populate(req.user.role === 'interviewer' ? 'candidate' : 'interviewer', 'name email')
+      .populate(req.user.role === 'interviewer' ? 'candidate' : 'interviewer', 'name email linkedInUrl')
       .sort({ scheduledDate: 1 });
-    
-    console.log(`Found ${interviews.length} interviews matching query:`, query);
     res.json(interviews);
   } catch (err) {
     console.error('Error fetching interviews:', err.message);
@@ -119,8 +117,8 @@ exports.getInterviews = async (req, res) => {
 exports.getInterviewById = async (req, res) => {
   try {
     const interview = await Interview.findById(req.params.id)
-      .populate('candidate', 'name email')
-      .populate('interviewer', 'name email')
+      .populate('candidate', 'name email linkedInUrl')
+      .populate('interviewer', 'name email linkedInUrl')
       .populate('problem');
     
     if (!interview) {

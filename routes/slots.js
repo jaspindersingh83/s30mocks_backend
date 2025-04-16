@@ -18,15 +18,7 @@ const isInterviewer = (req, res, next) => {
 // @route   POST api/slots/upload
 // @desc    Create slots from Google Sheet data
 // @access  Private (Admin only)
-router.post(
-  '/upload',
-  [
-    auth,
-    admin,
-    check('csvData', 'CSV data is required').not().isEmpty()
-  ],
-  slotController.createSlotsFromSheet
-);
+
 
 // @route   GET api/slots/available
 // @desc    Get all available slots

@@ -1,4 +1,5 @@
 const AWS = require("aws-sdk");
+const { DateTime } = require("luxon");
 require("dotenv").config();
 
 // Configure AWS SDK
@@ -10,6 +11,29 @@ AWS.config.update({
 
 // Create SES service object
 const ses = new AWS.SES();
+
+/**
+ * Format date with timezone information
+ * @param {String|Date} dateString - The date to format
+ * @param {String} timezone - The timezone to use (defaults to system timezone)
+ * @returns {String} - Formatted date string with timezone
+ */
+const formatDateWithTimezone = (dateString, timezone) => {
+  // Default to system timezone if none provided
+  const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  
+  return DateTime.fromISO(new Date(dateString).toISOString())
+    .setZone(tz)
+    .toLocaleString({
+      weekday: 'short',
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
+};
 
 /**
  * Send an email using AWS SES
@@ -415,9 +439,10 @@ const sendInterviewBookingNotification = async (
       <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <p><strong>Candidate:</strong> ${candidate.name}</p>
         <p><strong>Email:</strong> ${candidate.email}</p>
-        <p><strong>Date & Time:</strong> ${new Date(
-          interview.scheduledDate
-        ).toLocaleString()}</p>
+        <p><strong>Date & Time:</strong> ${formatDateWithTimezone(
+          interview.scheduledDate,
+          interview.timeZone
+        )}</p>
         <p><strong>Duration:</strong> ${interview.duration} minutes</p>
         <p><strong>Meeting Link:</strong> ${
           interview.meetingLink || "To be provided"
@@ -438,7 +463,7 @@ const sendInterviewBookingNotification = async (
     
     Candidate: ${candidate.name}
     Email: ${candidate.email}
-    Date & Time: ${new Date(interview.scheduledDate).toLocaleString()}
+    Date & Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
     Duration: ${interview.duration} minutes
     Meeting Link: ${interview.meetingLink || "To be provided"}
     
@@ -614,9 +639,10 @@ const sendInterviewBookingConfirmation = async (
       <p>Your interview has been successfully booked. Here are the details:</p>
       <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <p><strong>Interviewer:</strong> ${interviewer.name}</p>
-        <p><strong>Date & Time:</strong> ${new Date(
-          interview.scheduledDate
-        ).toLocaleString()}</p>
+        <p><strong>Date & Time:</strong> ${formatDateWithTimezone(
+          interview.scheduledDate,
+          interview.timeZone
+        )}</p>
         <p><strong>Duration:</strong> ${interview.duration} minutes</p>
         <p><strong>Meeting Link:</strong> ${
           interview.meetingLink || "Will be provided by the interviewer"
@@ -636,7 +662,7 @@ const sendInterviewBookingConfirmation = async (
     Your interview has been successfully booked. Here are the details:
     
     Interviewer: ${interviewer.name}
-    Date & Time: ${new Date(interview.scheduledDate).toLocaleString()}
+    Date & Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
     Duration: ${interview.duration} minutes
     Meeting Link: ${
       interview.meetingLink || "Will be provided by the interviewer"

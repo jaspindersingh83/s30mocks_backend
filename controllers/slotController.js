@@ -3,130 +3,12 @@ const User = require("../models/User");
 const Interview = require("../models/Interview");
 const InterviewPrice = require("../models/InterviewPrice");
 const { validationResult } = require("express-validator");
-const { parse } = require("csv-parse/sync");
-const nodemailer = require("nodemailer");
 const { scheduleInterviewReminder } = require("../utils/scheduler");
 const {
   sendEmail,
   sendInterviewBookingNotification,
   sendInterviewBookingConfirmation,
 } = require("../utils/email");
-
-// Create slots from Google Sheet data
-exports.createSlotsFromSheet = async (req, res) => {
-  try {
-    const validationErrors = validationResult(req);
-    if (!validationErrors.isEmpty()) {
-      return res.status(400).json({ errors: validationErrors.array() });
-    }
-
-    const { csvData } = req.body;
-
-    if (!csvData) {
-      return res.status(400).json({ message: "CSV data is required" });
-    }
-
-    // Parse CSV data
-    // Expected format: interviewer_email,start_time,end_time
-    // Example: interviewer@example.com,2023-04-10T10:00:00Z,2023-04-10T10:40:00Z
-    let records;
-    try {
-      records = parse(csvData, {
-        columns: true,
-        skip_empty_lines: true,
-      });
-    } catch (err) {
-      return res
-        .status(400)
-        .json({ message: "Invalid CSV format", error: err.message });
-    }
-
-    if (!records || records.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "No valid records found in CSV data" });
-    }
-
-    const createdSlots = [];
-    const processingErrors = [];
-
-    // Process each record
-    for (const record of records) {
-      try {
-        const { interviewer_email, start_time, end_time } = record;
-
-        // Validate required fields
-        if (!interviewer_email || !start_time || !end_time) {
-          processingErrors.push(
-            `Missing required fields in record: ${JSON.stringify(record)}`
-          );
-          continue;
-        }
-
-        // Find interviewer by email
-        const interviewer = await User.findOne({
-          email: interviewer_email.trim().toLowerCase(),
-          role: "interviewer",
-        });
-
-        if (!interviewer) {
-          processingErrors.push(
-            `Interviewer not found with email: ${interviewer_email}`
-          );
-          continue;
-        }
-
-        // Create slot
-        const startTime = new Date(start_time);
-        const endTime = new Date(end_time);
-
-        // Validate times
-        if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-          processingErrors.push(
-            `Invalid date format in record: ${JSON.stringify(record)}`
-          );
-          continue;
-        }
-
-        // Check if slot already exists
-        const existingSlot = await InterviewSlot.findOne({
-          interviewer: interviewer._id,
-          startTime,
-          endTime,
-        });
-
-        if (existingSlot) {
-          processingErrors.push(
-            `Slot already exists for interviewer ${interviewer_email} at ${start_time}`
-          );
-          continue;
-        }
-
-        // Create new slot
-        const slot = new InterviewSlot({
-          interviewer: interviewer._id,
-          startTime,
-          endTime,
-          createdBy: req.user.id,
-        });
-
-        await slot.save();
-        createdSlots.push(slot);
-      } catch (err) {
-        processingErrors.push(`Error processing record: ${err.message}`);
-      }
-    }
-
-    res.status(201).json({
-      message: `Successfully created ${createdSlots.length} slots`,
-      createdSlots,
-      errors: processingErrors.length > 0 ? processingErrors : undefined,
-    });
-  } catch (err) {
-    console.error("Error creating slots:", err);
-    res.status(500).send("Server error");
-  }
-};
 
 // Get all available slots
 exports.getAvailableSlots = async (req, res) => {
@@ -252,6 +134,7 @@ exports.bookSlot = async (req, res) => {
       currency: priceRecord.currency,
       status: "scheduled",
       slot: slot._id, // Set the reference to the slot
+      timeZone: slot.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone, // Use slot timezone or system timezone
       meetingLink:
         interviewer?.defaultMeetingLink ||
         "ping support team in whatsapp for link",

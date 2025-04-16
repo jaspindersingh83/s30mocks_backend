@@ -50,6 +50,10 @@ const InterviewSchema = new mongoose.Schema({
   recordingUrl: {
     type: String
   },
+  timeZone: {
+    type: String,
+    default: 'Asia/Kolkata' // Default to IST
+  },
   paymentStatus: {
     type: String,
     enum: ['pending', 'paid', 'refunded'],
