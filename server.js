@@ -40,6 +40,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
 }));
 
+// Add security headers for cross-origin communication
+app.use((req, res, next) => {
+  // Allow popups to communicate with the main window (for Google OAuth)
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  next();
+});
+
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
