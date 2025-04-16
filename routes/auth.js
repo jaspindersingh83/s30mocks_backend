@@ -169,7 +169,9 @@ router.post(
               role: user.role,
               isEmailVerified: user.isEmailVerified,
               linkedInUrl: user.linkedInUrl,
-              defaultMeetingLink: user.defaultMeetingLink
+              defaultMeetingLink: user.defaultMeetingLink,
+              workExperiences: user.workExperiences || [],
+              education: user.education || [],
             }
           });
         }
@@ -293,7 +295,9 @@ router.get("/me", auth, async (req, res) => {
         isEmailVerified: user.isEmailVerified,
         picture: user.picture,
         linkedInUrl: user.linkedInUrl,
-        defaultMeetingLink: user.defaultMeetingLink
+        defaultMeetingLink: user.defaultMeetingLink,
+        workExperiences: user.workExperiences || [],
+        education: user.education || [],
       }
     });
   } catch (err) {
@@ -493,7 +497,9 @@ router.post("/google", async (req, res) => {
             picture: user.picture,
             isEmailVerified: user.isEmailVerified,
             linkedInUrl: user.linkedInUrl,
-            defaultMeetingLink: user.defaultMeetingLink
+            defaultMeetingLink: user.defaultMeetingLink,
+            workExperiences: user.workExperiences || [],
+            education: user.education || [],
           }
         });
       }
