@@ -45,9 +45,11 @@ exports.getAvailableSlots = async (req, res) => {
 
     // Get available slots
     const slots = await InterviewSlot.find(filter)
-      //some text
-      .populate("interviewer", "name email linkedInUrl")
+      .populate("interviewer", "name email linkedInUrl role")
       .sort({ startTime: 1 });
+
+    // Filter out slots where the interviewer is not currently an interviewer
+    const filteredSlots = slots.filter(slot => slot.interviewer && slot.interviewer.role === "interviewer");
 
     // Get prices for each interview type
     const prices = await InterviewPrice.find();
@@ -60,7 +62,7 @@ exports.getAvailableSlots = async (req, res) => {
     });
 
     // Add price information to each slot
-    const slotsWithPrices = slots.map((slot) => {
+    const slotsWithPrices = filteredSlots.map((slot) => {
       const slotObj = slot.toObject();
       if (priceMap[slot.interviewType]) {
         slotObj.price = priceMap[slot.interviewType].price;
