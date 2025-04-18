@@ -946,6 +946,106 @@ const sendPasswordResetEmail = async (email, resetToken) => {
   return sendEmail(email, subject, htmlBody, textBody);
 };
 
+/**
+ * Send promotional email to candidates who haven't scheduled their first mock interview
+ * @param {Array} candidates - Array of candidate user objects
+ * @param {String} adminEmail - Admin email address to CC
+ * @returns {Promise} - Promise that resolves to the SES response
+ */
+const sendPromotionalEmail = async (candidates, adminEmail) => {
+  const subject = "Boost Your Interview Skills with Expert Interviewers from Amazon, Oracle, and Microsoft";
+
+  // Process candidates in batches to avoid SES limits
+  const batchSize = 50;
+  const results = [];
+  
+  for (let i = 0; i < candidates.length; i += batchSize) {
+    const batch = candidates.slice(i, i + batchSize);
+    const batchEmails = batch.map(candidate => candidate.email);
+    
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #4a6ee0; margin-bottom: 5px;">S30 Mocks</h1>
+          <p style="color: #666; font-size: 16px; margin-top: 0;">Prepare for Success</p>
+        </div>
+        
+        <h2 style="color: #333;">Ready to Ace Your Next Interview?</h2>
+        
+        <p>Hello${batch.length === 1 ? ' ' + batch[0].name : ''},</p>
+        
+        <p>We noticed you've signed up for S30 Mocks but haven't scheduled your first mock interview yet. Don't miss this opportunity to practice with our exceptional interviewers from top tech companies like <strong>Amazon</strong>, <strong>Microsoft</strong>, and <strong>Oracle</strong>.</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="color: #4a6ee0; margin-top: 0;">Why S30 Mocks?</h3>
+          <ul style="padding-left: 20px; margin-bottom: 0;">
+            <li>Practice with <strong>real interviewers</strong> from top tech companies</li>
+            <li>Receive <strong>detailed feedback</strong> on your performance</li>
+            <li>Improve your <strong>technical and communication skills</strong></li>
+            <li>Gain confidence through <strong>realistic interview scenarios</strong></li>
+            <li>Flexible scheduling to fit <strong>your availability</strong></li>
+          </ul>
+        </div>
+        
+        <p>Our interviewers have conducted hundreds of real technical interviews and know exactly what it takes to succeed at top companies.</p>
+        
+        <div style="text-align: center; margin: 25px 0;">
+          <a href="${process.env.CLIENT_URL}/slots" style="background-color: #4a6ee0; color: white; padding: 12px 25px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">Schedule Your Mock Interview</a>
+        </div>
+        
+        <p>Don't wait until your actual interview to practice. Start preparing now and give yourself the best chance of success!</p>
+        
+        <p>If you have any questions, simply reply to this email or contact our support team.</p>
+        
+        <p>Best regards,<br>The S30 Mocks Team</p>
+        
+        <hr style="border: 1px solid #eee; margin: 20px 0;">
+        <p style="color: #999; font-size: 12px; text-align: center;">© ${new Date().getFullYear()} S30 Mocks. All rights reserved.</p>
+      </div>
+    `;
+
+    const textBody = `
+      S30 Mocks - Prepare for Success
+      
+      READY TO ACE YOUR NEXT INTERVIEW?
+      
+      Hello${batch.length === 1 ? ' ' + batch[0].name : ''},
+      
+      We noticed you've signed up for S30 Mocks but haven't scheduled your first mock interview yet. Don't miss this opportunity to practice with our exceptional interviewers from top tech companies like Amazon, Microsoft, and Oracle.
+      
+      WHY S30 MOCKS?
+      * Practice with real interviewers from top tech companies
+      * Receive detailed feedback on your performance
+      * Improve your technical and communication skills
+      * Gain confidence through realistic interview scenarios
+      * Flexible scheduling to fit your availability
+      
+      Our interviewers have conducted hundreds of real technical interviews and know exactly what it takes to succeed at top companies.
+      
+      Schedule your mock interview now: ${process.env.CLIENT_URL}/slots
+      
+      Don't wait until your actual interview to practice. Start preparing now and give yourself the best chance of success!
+      
+      If you have any questions, simply reply to this email or contact our support team.
+      
+      Best regards,
+      The S30 Mocks Team
+      
+      © ${new Date().getFullYear()} S30 Mocks. All rights reserved.
+    `;
+
+    try {
+      const result = await sendEmail(batchEmails, subject, htmlBody, textBody, [adminEmail]);
+      results.push(result);
+    } catch (error) {
+      console.error(`Error sending promotional email to batch ${i / batchSize + 1}:`, error);
+      results.push({ error: error.message });
+    }
+  }
+  
+  return results;
+};
+
 module.exports = {
   sendEmail,
   sendFeedbackNotification,
@@ -959,4 +1059,5 @@ module.exports = {
   sendVerificationEmail,
   sendVerificationSuccessEmail,
   sendPasswordResetEmail,
+  sendPromotionalEmail,
 };
