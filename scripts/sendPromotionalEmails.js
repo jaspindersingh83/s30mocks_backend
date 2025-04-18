@@ -56,11 +56,24 @@ const sendPromotionalEmails = async () => {
     console.log(`CC'ing admin at ${adminEmail}`);
     
     // Send promotional emails
+    console.log(`Starting to send emails to ${eligibleCandidates.length} candidates...`);
     const results = await sendPromotionalEmail(eligibleCandidates, adminEmail);
     
-    console.log('Email sending completed.');
-    console.log(`Successfully sent: ${results.filter(r => !r.error).length}`);
-    console.log(`Failed: ${results.filter(r => r.error).length}`);
+    // Count successes and failures
+    const successCount = results.filter(r => r.success).length;
+    const failureCount = results.filter(r => !r.success).length;
+    
+    console.log('\nEmail sending completed.');
+    console.log(`Successfully sent: ${successCount}`);
+    console.log(`Failed: ${failureCount}`);
+    
+    // Log failed emails for retry if needed
+    if (failureCount > 0) {
+      console.log('\nFailed emails:');
+      results.filter(r => !r.success).forEach(r => {
+        console.log(`- ${r.email}: ${r.error}`);
+      });
+    }
     
     // Disconnect from MongoDB
     mongoose.disconnect();
