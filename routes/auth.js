@@ -155,12 +155,13 @@ router.post(
         (err, token) => {
           if (err) throw err;
           
-          // Set cookie for cross-domain auth (same as Google OAuth)
+          // Set cookie for cross-domain auth with Safari compatibility
           res.cookie("token", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: process.env.NODE_ENV === "production" || req.headers['user-agent'].includes('Safari'),
             sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-            maxAge: 24 * 60 * 60 * 1000
+            maxAge: 24 * 60 * 60 * 1000,
+            path: "/"
           });
           
           // Return token and user info (same format as Google OAuth)
@@ -482,12 +483,13 @@ router.post("/google", async (req, res) => {
       (err, token) => {
         if (err) throw err;
         
-        // Set cookie for cross-domain auth
+        // Set cookie for cross-domain auth with Safari compatibility
         res.cookie("token", token, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
+          secure: process.env.NODE_ENV === "production" || req.headers['user-agent'].includes('Safari'),
           sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-          maxAge: 24 * 60 * 60 * 1000
+          maxAge: 24 * 60 * 60 * 1000,
+          path: "/"
         });
         
         // Return token and user info

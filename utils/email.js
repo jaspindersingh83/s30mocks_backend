@@ -1,6 +1,18 @@
 const AWS = require("aws-sdk");
-const { DateTime } = require("luxon");
 require("dotenv").config();
+
+// Import email templates
+const {
+  formatDateWithTimezone,
+  getInterviewBookingConfirmationTemplate,
+  getInterviewBookingNotificationTemplate,
+  getInterviewCancellationConfirmationTemplate,
+  getInterviewCancellationNotificationTemplate,
+  getInterviewReminderTemplates,
+  getPaymentVerificationNotificationTemplate,
+  getPaymentVerificationConfirmationTemplate,
+  getFeedbackNotificationTemplates
+} = require("./emailTemplates");
 
 // Configure AWS SDK
 AWS.config.update({
@@ -11,21 +23,6 @@ AWS.config.update({
 
 // Create SES service object
 const ses = new AWS.SES();
-
-/**
- * Format date with timezone information
- * @param {String|Date} dateString - The date to format
- * @param {String} timezone - The timezone to use (defaults to system timezone)
- * @returns {String} - Formatted date string with timezone
- */
-const formatDateWithTimezone = (dateString, timezone) => {
-  // Default to system timezone if none provided
-  const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-  
-  return DateTime.fromISO(new Date(dateString).toISOString())
-    .setZone(tz)
-    .toFormat("EEEE, MMMM d, yyyy 'at' h:mm a (z)");
-};
 
 /**
  * Send an email using AWS SES
@@ -176,69 +173,13 @@ const sendFeedbackNotification = async (
   const candidateSubject = "Feedback Received for Your Interview";
   const adminSubject = `New Feedback Submitted - ${candidate.name}'s Interview`;
 
-  const candidateHtmlBody = `
-    <h2>Feedback Received</h2>
-    <p>Hello ${candidate.name},</p>
-    <p>Your interviewer, ${
-      interviewer.name
-    }, has submitted feedback for your interview on ${new Date(
-    interview.scheduledDate
-  ).toLocaleString()}.</p>
-    <p>You can now log in to view your feedback and complete the payment process.</p>
-    <p>Thank you for using S30 Mocks!</p>
-  `;
-
-  const adminHtmlBody = `
-    <h2>New Feedback Submitted</h2>
-    <p>Hello Admin,</p>
-    <p>${interviewer.name} has submitted feedback for ${
-    candidate.name
-  }'s interview.</p>
-    <p>Interview Details:</p>
-    <ul>
-      <li>Interview Type: ${interview.interviewType}</li>
-      <li>Date: ${new Date(interview.scheduledDate).toLocaleString()}</li>
-      <li>Technical Score: ${feedback.technicalScore}/5</li>
-      <li>Communication Score: ${feedback.communicationScore}/5</li>
-      <li>Problem Solving Score: ${feedback.problemSolvingScore}/5</li>
-    </ul>
-    <p>Please log in to the admin dashboard for more details.</p>
-  `;
-
-  const candidateTextBody = `
-    Feedback Received
-    
-    Hello ${candidate.name},
-    
-    Your interviewer, ${
-      interviewer.name
-    }, has submitted feedback for your interview on ${new Date(
-    interview.scheduledDate
-  ).toLocaleString()}.
-    
-    You can now log in to view your feedback and complete the payment process.
-    
-    Thank you for using S30 Mocks!
-  `;
-
-  const adminTextBody = `
-    New Feedback Submitted
-    
-    Hello Admin,
-    
-    ${interviewer.name} has submitted feedback for ${
-    candidate.name
-  }'s interview.
-    
-    Interview Details:
-    - Interview Type: ${interview.interviewType}
-    - Date: ${new Date(interview.scheduledDate).toLocaleString()}
-    - Technical Score: ${feedback.technicalScore}/5
-    - Communication Score: ${feedback.communicationScore}/5
-    - Problem Solving Score: ${feedback.problemSolvingScore}/5
-    
-    Please log in to the admin dashboard for more details.
-  `;
+  // Get email templates with proper timezone formatting
+  const {
+    candidateHtmlBody,
+    candidateTextBody,
+    adminHtmlBody,
+    adminTextBody
+  } = getFeedbackNotificationTemplates(feedback, interview, candidate, interviewer);
 
   // Send emails
   await Promise.all([
@@ -267,145 +208,41 @@ const sendInterviewReminder = async (
 ) => {
   const subject = `Reminder: Interview in 30 Minutes`;
 
-  const candidateHtmlBody = `
-    <h2>Interview Reminder</h2>
-    <p>Hello ${candidate.name},</p>
-    <p>This is a reminder that your interview with ${
-      interviewer.name
-    } is scheduled to begin in 30 minutes.</p>
-    <p>Interview Details:</p>
-    <ul>
-      <li>Type: ${interview.interviewType}</li>
-      <li>Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</li>
-      <li>Duration: ${interview.duration} minutes</li>
-      ${
-        interview.meetingLink
-          ? `<li>Meeting Link: <a href="${interview.meetingLink}">${interview.meetingLink}</a></li>`
-          : ""
-      }
-      ${
-        interview.meetingPassword
-          ? `<li>Meeting Password: ${interview.meetingPassword}</li>`
-          : ""
-      }
-    </ul>
-    <p>Please be ready on time and ensure your internet connection and equipment are working properly.</p>
-    <p>Good luck!</p>
-  `;
+  // Get email templates with proper timezone formatting
+  const {
+    candidateHtmlBody,
+    candidateTextBody,
+    interviewerHtmlBody,
+    interviewerTextBody,
+    adminHtmlBody,
+    adminTextBody
+  } = getInterviewReminderTemplates(interview, candidate, interviewer);
 
-  const interviewerHtmlBody = `
-    <h2>Interview Reminder</h2>
-    <p>Hello ${interviewer.name},</p>
-    <p>This is a reminder that you have an interview with ${
-      candidate.name
-    } scheduled to begin in 30 minutes.</p>
-    <p>Interview Details:</p>
-    <ul>
-      <li>Type: ${interview.interviewType}</li>
-      <li>Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</li>
-      <li>Duration: ${interview.duration} minutes</li>
-      ${
-        interview.meetingLink
-          ? `<li>Meeting Link: <a href="${interview.meetingLink}">${interview.meetingLink}</a></li>`
-          : ""
-      }
-      ${
-        interview.meetingPassword
-          ? `<li>Meeting Password: ${interview.meetingPassword}</li>`
-          : ""
-      }
-    </ul>
-    <p>Please be ready on time and ensure your internet connection and equipment are working properly.</p>
-  `;
+  // Send reminder to candidate
+  await sendEmail(
+    candidate.email,
+    subject,
+    candidateHtmlBody,
+    candidateTextBody
+  );
 
-  const adminHtmlBody = `
-    <h2>Interview Reminder</h2>
-    <p>Hello Admin,</p>
-    <p>This is a reminder that an interview is scheduled to begin in 30 minutes.</p>
-    <p>Interview Details:</p>
-    <ul>
-      <li>Candidate: ${candidate.name} (${candidate.email})</li>
-      <li>Interviewer: ${interviewer.name} (${interviewer.email})</li>
-      <li>Type: ${interview.interviewType}</li>
-      <li>Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</li>
-      <li>Duration: ${interview.duration} minutes</li>
-    </ul>
-  `;
+  // Send reminder to interviewer
+  await sendEmail(
+    interviewer.email,
+    subject,
+    interviewerHtmlBody,
+    interviewerTextBody
+  );
 
-  const candidateTextBody = `
-    Interview Reminder
-    
-    Hello ${candidate.name},
-    
-    This is a reminder that your interview with ${
-      interviewer.name
-    } is scheduled to begin in 30 minutes.
-    
-    Interview Details:
-    - Type: ${interview.interviewType}
-    - Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
-    - Duration: ${interview.duration} minutes
-    ${interview.meetingLink ? `- Meeting Link: ${interview.meetingLink}` : ""}
-    ${
-      interview.meetingPassword
-        ? `- Meeting Password: ${interview.meetingPassword}`
-        : ""
-    }
-    
-    Please be ready on time and ensure your internet connection and equipment are working properly.
-    
-    Good luck!
-  `;
-
-  const interviewerTextBody = `
-    Interview Reminder
-    
-    Hello ${interviewer.name},
-    
-    This is a reminder that you have an interview with ${
-      candidate.name
-    } scheduled to begin in 30 minutes.
-    
-    Interview Details:
-    - Type: ${interview.interviewType}
-    - Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
-    - Duration: ${interview.duration} minutes
-    ${interview.meetingLink ? `- Meeting Link: ${interview.meetingLink}` : ""}
-    ${
-      interview.meetingPassword
-        ? `- Meeting Password: ${interview.meetingPassword}`
-        : ""
-    }
-    
-    Please be ready on time and ensure your internet connection and equipment are working properly.
-  `;
-
-  const adminTextBody = `
-    Interview Reminder
-    
-    Hello Admin,
-    
-    This is a reminder that an interview is scheduled to begin in 30 minutes.
-    
-    Interview Details:
-    - Candidate: ${candidate.name} (${candidate.email})
-    - Interviewer: ${interviewer.name} (${interviewer.email})
-    - Type: ${interview.interviewType}
-    - Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
-    - Duration: ${interview.duration} minutes
-  `;
-
-  // Send emails
-  await Promise.all([
-    sendEmail(candidate.email, subject, candidateHtmlBody, candidateTextBody),
-    sendEmail(
-      interviewer.email,
-      subject,
-      interviewerHtmlBody,
-      interviewerTextBody
-    ),
-    sendEmail(adminEmail, subject, adminHtmlBody, adminTextBody),
-  ]);
+  // Send notification to admin if provided
+  if (adminEmail) {
+    await sendEmail(
+      adminEmail,
+      `Interview Reminder: ${candidate.name} & ${interviewer.name}`,
+      adminHtmlBody,
+      adminTextBody
+    );
+  }
 };
 
 /**
@@ -423,49 +260,8 @@ const sendInterviewBookingNotification = async (
 ) => {
   const subject = "New Interview Booking Notification";
 
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #4a6ee0;">New Interview Booking</h2>
-      <p>Hello ${interviewer.name},</p>
-      <p>A new interview has been booked with you. Here are the details:</p>
-      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <p><strong>Candidate:</strong> ${candidate.name}</p>
-        <p><strong>Email:</strong> ${candidate.email}</p>
-        <p><strong>Date & Time:</strong> ${formatDateWithTimezone(
-          interview.scheduledDate,
-          interview.timeZone
-        )}</p>
-        <p><strong>Duration:</strong> ${interview.duration} minutes</p>
-        <p><strong>Meeting Link:</strong> ${
-          interview.meetingLink || "To be provided"
-        }</p>
-      </div>
-      <p>Please log in to your account to view more details and prepare for the interview.</p>
-      <p>Thank you for being a part of our platform!</p>
-      <p>Best regards,<br>S30 Mocks Team</p>
-    </div>
-  `;
-
-  const textBody = `
-    New Interview Booking
-    
-    Hello ${interviewer.name},
-    
-    A new interview has been booked with you. Here are the details:
-    
-    Candidate: ${candidate.name}
-    Email: ${candidate.email}
-    Date & Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
-    Duration: ${interview.duration} minutes
-    Meeting Link: ${interview.meetingLink || "To be provided"}
-    
-    Please log in to your account to view more details and prepare for the interview.
-    
-    Thank you for being a part of our platform!
-    
-    Best regards,
-    S30 Mocks Team
-  `;
+  // Get email template with proper timezone formatting
+  const { htmlBody, textBody } = getInterviewBookingNotificationTemplate(interview, candidate, interviewer);
 
   return await sendEmail(
     interviewer.email,
@@ -491,44 +287,8 @@ const sendInterviewCancellationNotification = async (
 ) => {
   const subject = "Interview Cancellation Notification";
 
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #e74c3c;">Interview Cancelled</h2>
-      <p>Hello ${interviewer.name},</p>
-      <p>We regret to inform you that an interview has been cancelled by the candidate. Here are the details:</p>
-      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <p><strong>Candidate:</strong> ${candidate.name}</p>
-        <p><strong>Email:</strong> ${candidate.email}</p>
-        <p><strong>Originally Scheduled:</strong> ${new Date(
-          interview.scheduledDate
-        ).toLocaleString()}</p>
-        <p><strong>Duration:</strong> ${interview.duration} minutes</p>
-      </div>
-      <p>Your time slot is now available for other bookings.</p>
-      <p>Thank you for your understanding.</p>
-      <p>Best regards,<br>S30 Mocks Team</p>
-    </div>
-  `;
-
-  const textBody = `
-    Interview Cancelled
-    
-    Hello ${interviewer.name},
-    
-    We regret to inform you that an interview has been cancelled by the candidate. Here are the details:
-    
-    Candidate: ${candidate.name}
-    Email: ${candidate.email}
-    Originally Scheduled: ${new Date(interview.scheduledDate).toLocaleString()}
-    Duration: ${interview.duration} minutes
-    
-    Your time slot is now available for other bookings.
-    
-    Thank you for your understanding.
-    
-    Best regards,
-    S30 Mocks Team
-  `;
+  // Get email template with proper timezone formatting
+  const { htmlBody, textBody } = getInterviewCancellationNotificationTemplate(interview, candidate, interviewer);
 
   return await sendEmail(
     interviewer.email,
@@ -556,48 +316,8 @@ const sendPaymentVerificationNotification = async (
 ) => {
   const subject = "Payment Verification Required";
 
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #f39c12;">Payment Verification Required</h2>
-      <p>Hello ${interviewer.name},</p>
-      <p>A candidate has submitted payment for an upcoming interview with you. Please verify this payment:</p>
-      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <p><strong>Candidate:</strong> ${candidate.name}</p>
-        <p><strong>Email:</strong> ${candidate.email}</p>
-        <p><strong>Interview Date:</strong> ${new Date(
-          interview.scheduledDate
-        ).toLocaleString()}</p>
-        <p><strong>Amount:</strong> ${payment.currency} ${payment.amount}</p>
-        <p><strong>Transaction ID:</strong> ${
-          payment.transactionId || "Not provided"
-        }</p>
-      </div>
-      <p>Please log in to your account to verify this payment. The candidate has uploaded proof of payment which you can review on the platform.</p>
-      <p>Thank you for your prompt attention to this matter.</p>
-      <p>Best regards,<br>S30 Mocks Team</p>
-    </div>
-  `;
-
-  const textBody = `
-    Payment Verification Required
-    
-    Hello ${interviewer.name},
-    
-    A candidate has submitted payment for an upcoming interview with you. Please verify this payment:
-    
-    Candidate: ${candidate.name}
-    Email: ${candidate.email}
-    Interview Date: ${new Date(interview.scheduledDate).toLocaleString()}
-    Amount: ${payment.currency} ${payment.amount}
-    Transaction ID: ${payment.transactionId || "Not provided"}
-    
-    Please log in to your account to verify this payment. The candidate has uploaded proof of payment which you can review on the platform.
-    
-    Thank you for your prompt attention to this matter.
-    
-    Best regards,
-    S30 Mocks Team
-  `;
+  // Get email template with proper timezone formatting
+  const { htmlBody, textBody } = getPaymentVerificationNotificationTemplate(interview, payment, candidate, interviewer);
 
   return await sendEmail(
     interviewer.email,
@@ -623,50 +343,9 @@ const sendInterviewBookingConfirmation = async (
   adminEmail
 ) => {
   const subject = "Interview Booking Confirmation";
-
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #4a6ee0;">Interview Booking Confirmation</h2>
-      <p>Hello ${candidate.name},</p>
-      <p>Your interview has been successfully booked. Here are the details:</p>
-      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <p><strong>Interviewer:</strong> ${interviewer.name}</p>
-        <p><strong>Date & Time:</strong> ${formatDateWithTimezone(
-          interview.scheduledDate,
-          interview.timeZone
-        )}</p>
-        <p><strong>Duration:</strong> ${interview.duration} minutes</p>
-        <p><strong>Meeting Link:</strong> ${
-          interview.meetingLink || "Will be provided by the interviewer"
-        }</p>
-      </div>
-      <p>Please make sure to complete the payment to confirm your interview slot. You can do this from your dashboard.</p>
-      <p>We wish you all the best for your interview!</p>
-      <p>Best regards,<br>S30 Mocks Team</p>
-    </div>
-  `;
-
-  const textBody = `
-    Interview Booking Confirmation
-    
-    Hello ${candidate.name},
-    
-    Your interview has been successfully booked. Here are the details:
-    
-    Interviewer: ${interviewer.name}
-    Date & Time: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
-    Duration: ${interview.duration} minutes
-    Meeting Link: ${
-      interview.meetingLink || "Will be provided by the interviewer"
-    }
-    
-    Please make sure to complete the payment to confirm your interview slot. You can do this from your dashboard.
-    
-    We wish you all the best for your interview!
-    
-    Best regards,
-    S30 Mocks Team
-  `;
+  
+  // Get email template with proper timezone formatting
+  const { htmlBody, textBody } = getInterviewBookingConfirmationTemplate(interview, candidate, interviewer);
 
   return await sendEmail(
     candidate.email,
@@ -693,42 +372,8 @@ const sendInterviewCancellationConfirmation = async (
 ) => {
   const subject = "Interview Cancellation Confirmation";
 
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #e74c3c;">Interview Cancellation Confirmation</h2>
-      <p>Hello ${candidate.name},</p>
-      <p>Your interview has been successfully cancelled. Here are the details of the cancelled interview:</p>
-      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <p><strong>Interviewer:</strong> ${interviewer.name}</p>
-        <p><strong>Originally Scheduled:</strong> ${new Date(
-          interview.scheduledDate
-        ).toLocaleString()}</p>
-        <p><strong>Duration:</strong> ${interview.duration} minutes</p>
-      </div>
-      <p>If you've already made a payment for this interview, please contact us regarding the refund process.</p>
-      <p>We hope to see you book another interview soon!</p>
-      <p>Best regards,<br>S30 Mocks Team</p>
-    </div>
-  `;
-
-  const textBody = `
-    Interview Cancellation Confirmation
-    
-    Hello ${candidate.name},
-    
-    Your interview has been successfully cancelled. Here are the details of the cancelled interview:
-    
-    Interviewer: ${interviewer.name}
-    Originally Scheduled: ${new Date(interview.scheduledDate).toLocaleString()}
-    Duration: ${interview.duration} minutes
-    
-    If you've already made a payment for this interview, please contact us regarding the refund process.
-    
-    We hope to see you book another interview soon!
-    
-    Best regards,
-    S30 Mocks Team
-  `;
+  // Get email template with proper timezone formatting
+  const { htmlBody, textBody } = getInterviewCancellationConfirmationTemplate(interview, candidate, interviewer);
 
   return await sendEmail(
     candidate.email,
@@ -757,48 +402,8 @@ const sendPaymentVerificationConfirmation = async (
 ) => {
   const subject = "Payment Verification Confirmation";
 
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #27ae60;">Payment Verified Successfully</h2>
-      <p>Hello ${candidate.name},</p>
-      <p>Your payment for the upcoming interview has been verified successfully. Your interview is now confirmed!</p>
-      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <p><strong>Interviewer:</strong> ${interviewer.name}</p>
-        <p><strong>Interview Date:</strong> ${new Date(
-          interview.scheduledDate
-        ).toLocaleString()}</p>
-        <p><strong>Amount Paid:</strong> ${payment.currency} ${
-    payment.amount
-  }</p>
-        <p><strong>Transaction ID:</strong> ${
-          payment.transactionId || "Not provided"
-        }</p>
-      </div>
-      <p>Please make sure to join the interview on time using the meeting link provided in your dashboard.</p>
-      <p>We wish you all the best for your interview!</p>
-      <p>Best regards,<br>S30 Mocks Team</p>
-    </div>
-  `;
-
-  const textBody = `
-    Payment Verified Successfully
-    
-    Hello ${candidate.name},
-    
-    Your payment for the upcoming interview has been verified successfully. Your interview is now confirmed!
-    
-    Interviewer: ${interviewer.name}
-    Interview Date: ${new Date(interview.scheduledDate).toLocaleString()}
-    Amount Paid: ${payment.currency} ${payment.amount}
-    Transaction ID: ${payment.transactionId || "Not provided"}
-    
-    Please make sure to join the interview on time using the meeting link provided in your dashboard.
-    
-    We wish you all the best for your interview!
-    
-    Best regards,
-    S30 Mocks Team
-  `;
+  // Get email template with proper timezone formatting
+  const { htmlBody, textBody } = getPaymentVerificationConfirmationTemplate(interview, payment, candidate, interviewer);
 
   return await sendEmail(
     candidate.email,
