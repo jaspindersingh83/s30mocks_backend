@@ -92,8 +92,8 @@ exports.getInterviews = async (req, res) => {
       if (req.query.status === 'scheduled') {
         query.status = 'scheduled';
         // Only include future scheduled interviews
-        query.scheduledDate = { $gt: new Date() };
-        console.log(`Filtering interviews by status: scheduled (future only)`);
+        // query.scheduledDate = { $gt: new Date() };
+        // console.log(`Filtering interviews by status: scheduled (future only)`);
       } 
       // Handle other standard statuses
       else if (['in-progress', 'completed', 'cancelled'].includes(req.query.status)) {
