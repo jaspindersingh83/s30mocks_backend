@@ -22,15 +22,12 @@ exports.createFeedback = async (req, res) => {
       additionalComments 
     } = req.body;
     
-    // Verify interview exists and is completed
-    const interview = await Interview.findOne({ 
-      _id: interviewId,
-      status: 'completed'
-    });
-    
+    // Verify interview exists
+    const interview = await Interview.findById(interviewId);
+
     if (!interview) {
       return res.status(404).json({ 
-        message: 'Interview not found or not yet completed' 
+        message: 'Interview not found' 
       });
     }
     
