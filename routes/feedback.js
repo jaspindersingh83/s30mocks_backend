@@ -62,7 +62,7 @@ router.put(
   '/:id',
   [
     auth,
-    check('technicalScore', 'Technical score must be between 1-5').optional().isInt({ min: 1, max: 5 }),
+    check('codingAndDebugging', 'Technical score must be between 1-5').optional().isInt({ min: 1, max: 5 }),
     check('communicationScore', 'Communication score must be between 1-5').optional().isInt({ min: 1, max: 5 }),
     check('problemSolvingScore', 'Problem solving score must be between 1-5').optional().isInt({ min: 1, max: 5 })
   ],

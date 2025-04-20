@@ -51,7 +51,7 @@ exports.createFeedback = async (req, res) => {
       interview: interviewId,
       interviewer: req.user.id,
       candidate: interview.candidate,
-      codingAndDebugging,
+      technicalScore: codingAndDebugging,
       communicationScore,
       problemSolvingScore,
       strengths,

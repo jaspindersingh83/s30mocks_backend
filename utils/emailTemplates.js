@@ -429,7 +429,7 @@ const getFeedbackNotificationTemplates = (feedback, interview, candidate, interv
     <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
       <p><strong>Interview Type:</strong> ${interview.interviewType}</p>
       <p><strong>Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
-      <p><strong>Technical Score:</strong> ${feedback.technicalScore}/5</p>
+      <p><strong>Technical Score:</strong> ${feedback.codingAndDebugging}/5</p>
       <p><strong>Communication Score:</strong> ${feedback.communicationScore}/5</p>
       <p><strong>Problem Solving Score:</strong> ${feedback.problemSolvingScore}/5</p>
     </div>
@@ -447,7 +447,7 @@ const getFeedbackNotificationTemplates = (feedback, interview, candidate, interv
     
     Interview Type: ${interview.interviewType}
     Date: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
-    Technical Score: ${feedback.technicalScore}/5
+    Technical Score: ${feedback.codingAndDebugging}/5
     Communication Score: ${feedback.communicationScore}/5
     Problem Solving Score: ${feedback.problemSolvingScore}/5
     
@@ -467,7 +467,7 @@ const getFeedbackNotificationTemplates = (feedback, interview, candidate, interv
       <p><strong>Interview Details:</strong></p>
       <p><strong>Interview Type:</strong> ${interview.interviewType}</p>
       <p><strong>Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
-      <p><strong>Technical Score:</strong> ${feedback.technicalScore}/5</p>
+      <p><strong>Technical Score:</strong> ${feedback.codingAndDebugging}/5</p>
       <p><strong>Communication Score:</strong> ${feedback.communicationScore}/5</p>
       <p><strong>Problem Solving Score:</strong> ${feedback.problemSolvingScore}/5</p>
     </div>
@@ -485,7 +485,7 @@ const getFeedbackNotificationTemplates = (feedback, interview, candidate, interv
     Interview Details:
     - Interview Type: ${interview.interviewType}
     - Date: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
-    - Technical Score: ${feedback.technicalScore}/5
+    - Technical Score: ${feedback.codingAndDebugging}/5
     - Communication Score: ${feedback.communicationScore}/5
     - Problem Solving Score: ${feedback.problemSolvingScore}/5
     

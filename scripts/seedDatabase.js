@@ -183,7 +183,7 @@ const seedDatabase = async () => {
       interview: createdInterviews[0]._id,
       interviewer: interviewers[0]._id,
       candidate: candidates[0]._id,
-      technicalScore: 4,
+      codingAndDebugging: 4,
       communicationScore: 3,
       problemSolvingScore: 4,
       strengths: 'Good understanding of data structures. Clearly explains thought process.',
