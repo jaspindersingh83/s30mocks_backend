@@ -176,34 +176,27 @@ exports.bookSlot = async (req, res) => {
 
       // Send notification to admin (using the same template as interviewer)
       if (adminEmail && adminEmail !== interviewer.email) {
-        await sendEmail(
-          adminEmail,
-          `[ADMIN] New Interview Booking: ${candidate.name} with ${interviewer.name}`,
-          `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #4a6ee0;">New Interview Booking (Admin Notification)</h2>
-            <p>Hello Admin,</p>
-            <p>A new interview has been booked. Here are the details:</p>
-            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <p><strong>Candidate:</strong> ${candidate.name} (${
-            candidate.email
-          })</p>
-              <p><strong>Interviewer:</strong> ${interviewer.name} (${
-            interviewer.email
-          })</p>
-              <p><strong>Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
-              <p><strong>Duration:</strong> ${interview.duration} minutes</p>
-              <p><strong>Interview Type:</strong> ${interview.interviewType}</p>
-              <p><strong>Price:</strong> ${interview.currency} ${
-            interview.price
-          }</p>
-              <p><strong>Meeting Link:</strong> ${
-                interview.meetingLink || "To be provided"
-              }</p>
-            </div>
-            <p>This is an automated notification for administrative purposes.</p>
-            <p>Best regards,<br>S30 Mocks System</p>
-          </div>`,
-          `New Interview Booking (Admin Notification)
+        try {
+          await sendEmail(
+            adminEmail,
+            `[ADMIN] New Interview Booking: ${candidate.name} with ${interviewer.name}`,
+            `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #4a6ee0;">New Interview Booking (Admin Notification)</h2>
+              <p>Hello Admin,</p>
+              <p>A new interview has been booked. Here are the details:</p>
+              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p><strong>Candidate:</strong> ${candidate.name} (${candidate.email})</p>
+                <p><strong>Interviewer:</strong> ${interviewer.name} (${interviewer.email})</p>
+                <p><strong>Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
+                <p><strong>Duration:</strong> ${interview.duration} minutes</p>
+                <p><strong>Interview Type:</strong> ${interview.interviewType}</p>
+                <p><strong>Price:</strong> ${interview.currency} ${interview.price}</p>
+                <p><strong>Meeting Link:</strong> ${interview.meetingLink || "To be provided"}</p>
+              </div>
+              <p>This is an automated notification for administrative purposes.</p>
+              <p>Best regards,<br>S30 Mocks System</p>
+            </div>`,
+            `New Interview Booking (Admin Notification)
 
 Hello Admin,
 
@@ -221,7 +214,12 @@ This is an automated notification for administrative purposes.
 
 Best regards,
 S30 Mocks System`
-        );
+          );
+          console.log("Admin notification email sent successfully");
+        } catch (adminEmailError) {
+          console.error("Error sending admin notification email:", adminEmailError);
+          // Continue even if admin email fails
+        }
       }
 
       console.log("Booking notification emails sent successfully");

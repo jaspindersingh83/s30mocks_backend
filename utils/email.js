@@ -265,7 +265,7 @@ const sendInterviewBookingNotification = async (
     subject,
     htmlBody,
     textBody,
-    adminEmail
+    adminEmail ? [adminEmail] : []
   );
 };
 
@@ -292,7 +292,7 @@ const sendInterviewCancellationNotification = async (
     subject,
     htmlBody,
     textBody,
-    adminEmail
+    adminEmail ? [adminEmail] : []
   );
 };
 
@@ -321,7 +321,7 @@ const sendPaymentVerificationNotification = async (
     subject,
     htmlBody,
     textBody,
-    adminEmail
+    adminEmail ? [adminEmail] : []
   );
 };
 
