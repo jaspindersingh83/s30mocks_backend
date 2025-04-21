@@ -413,7 +413,7 @@ exports.getPaymentStats = async (req, res) => {
     
     // Calculate total amount from verified payments
     const verifiedPayments = await Payment.find({ status: 'verified' });
-    stats.totalAmount = verifiedPayments.reduce((sum, payment) => sum + payment.amount, 0) / 100; // Convert to rupees
+    stats.totalAmount = verifiedPayments.reduce((sum, payment) => sum + payment.amount, 0); // Convert to rupees
     
     res.json(stats);
   } catch (err) {
