@@ -126,7 +126,6 @@ const getInterviewCancellationConfirmationTemplate = (interview, candidate, inte
         <p><strong>Interviewer:</strong> ${interviewer.name}</p>
         <p><strong>Duration:</strong> ${interview.duration} minutes</p>
       </div>
-      <p>If you've already made a payment for this interview, please contact us regarding the refund process.</p>
       <p>We hope to see you book another interview soon!</p>
       <p>Best regards,<br>S30 Mocks Team</p>
     </div>
@@ -141,8 +140,6 @@ const getInterviewCancellationConfirmationTemplate = (interview, candidate, inte
     
     Interviewer: ${interviewer.name}
     Duration: ${interview.duration} minutes
-    
-    If you've already made a payment for this interview, please contact us regarding the refund process.
     
     We hope to see you book another interview soon!
     
