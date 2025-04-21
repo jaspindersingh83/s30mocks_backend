@@ -88,6 +88,7 @@ exports.getUpiSetup = async (req, res) => {
 // Create a payment request for UPI payment
 exports.createPaymentRequest = async (req, res) => {
   try {
+    console.log('Creating payment request for interview:', req.body);
     const { interviewId } = req.body;
     
     // Verify interview exists
@@ -121,8 +122,8 @@ exports.createPaymentRequest = async (req, res) => {
     // Use base price directly (no GST)
     const basePrice = priceRecord.price;
     
-    // Convert to paise (multiply by 100)
-    const amount = Math.round(basePrice * 100);
+    // Use the base price directly
+    const amount = basePrice;
     
     // Create payment record
     const payment = new Payment({
@@ -131,7 +132,7 @@ exports.createPaymentRequest = async (req, res) => {
       amount,
       upiId: interviewer.upiId,
       qrCodeUrl: interviewer.qrCodeUrl,
-      status: 'unpaid' // Initial status is unpaid until proof is submitted
+      status: 'pending' // Initial status until proof is submitted
     });
     
     await payment.save();
@@ -144,7 +145,7 @@ exports.createPaymentRequest = async (req, res) => {
       paymentId: payment._id,
       upiId: interviewer.upiId,
       qrCodeUrl: interviewer.qrCodeUrl,
-      amount: amount / 100, // Convert to rupees for display
+      amount: amount, // Use amount directly
       currency: priceRecord.currency || 'INR'
     });
   } catch (err) {
@@ -266,12 +267,12 @@ exports.getPaymentByInterviewId = async (req, res) => {
     
     const payment = await Payment.findOne({ interview: interviewId });
     
-    // If no payment exists, return an empty payment object with status 'unpaid'
+    // If no payment exists, return an empty payment object with status 'pending'
     // instead of a 404 error to make client-side handling easier
     if (!payment) {
-      console.log(`No payment found for interview ${interviewId}, returning unpaid status`);
+      console.log(`No payment found for interview ${interviewId}, returning pending status`);
       return res.json({ 
-        status: 'unpaid',
+        status: 'pending',
         interview: interviewId,
         exists: false
       });
