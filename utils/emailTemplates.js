@@ -30,8 +30,7 @@ const getInterviewBookingConfirmationTemplate = (interview, candidate, interview
       <p>Your interview has been successfully booked. Here are the details:</p>
       <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <p><strong>Interviewer:</strong> ${interviewer.name}</p>
-        <p><strong>Interview Date:</strong> ${DateTime.fromISO(new Date(interview.scheduledDate).toISOString()).toFormat("MMMM d, yyyy")}</p>
-        <p><strong>Important:</strong> Please check your <a href="https://s30mocks.vercel.app/interviews" style="color: #4a6ee0; text-decoration: underline;">Dashboard</a> for the exact interview timing.</p>
+        <p><strong>Interview Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
         <p><strong>Duration:</strong> ${interview.duration} minutes</p>
         <p><strong>Meeting Link:</strong> ${interview.meetingLink || "Will be provided by the interviewer"}</p>
       </div>
@@ -49,8 +48,8 @@ const getInterviewBookingConfirmationTemplate = (interview, candidate, interview
     Your interview has been successfully booked. Here are the details:
     
     Interviewer: ${interviewer.name}
+    Date: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
     Interview Date: ${DateTime.fromISO(new Date(interview.scheduledDate).toISOString()).toFormat("MMMM d, yyyy")}
-    Important: Please check your Dashboard for the exact interview timing: https://s30mocks.vercel.app/interviews
     Duration: ${interview.duration} minutes
     Meeting Link: ${interview.meetingLink || "Will be provided by the interviewer"}
     
@@ -77,8 +76,7 @@ const getInterviewBookingNotificationTemplate = (interview, candidate, interview
       <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <p><strong>Candidate:</strong> ${candidate.name}</p>
         <p><strong>Email:</strong> ${candidate.email}</p>
-        <p><strong>Interview Date:</strong> ${DateTime.fromISO(new Date(interview.scheduledDate).toISOString()).toFormat("MMMM d, yyyy")}</p>
-        <p><strong>Important:</strong> Please check your <a href="https://s30mocks.vercel.app/interviews" style="color: #4a6ee0; text-decoration: underline;">Dashboard</a> for the exact interview timing.</p>
+        <p><strong>Interview Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
         <p><strong>Duration:</strong> ${interview.duration} minutes</p>
         <p><strong>Meeting Link:</strong> ${interview.meetingLink || "To be provided"}</p>
       </div>
@@ -97,8 +95,7 @@ const getInterviewBookingNotificationTemplate = (interview, candidate, interview
     
     Candidate: ${candidate.name}
     Email: ${candidate.email}
-    Interview Date: ${DateTime.fromISO(new Date(interview.scheduledDate).toISOString()).toFormat("MMMM d, yyyy")}
-    Important: Please check your Dashboard for the exact interview timing: https://s30mocks.vercel.app/interviews
+    Date: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
     Duration: ${interview.duration} minutes
     Meeting Link: ${interview.meetingLink || "To be provided"}
     
