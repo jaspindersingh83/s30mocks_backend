@@ -124,7 +124,6 @@ const getInterviewCancellationConfirmationTemplate = (interview, candidate, inte
       <p>Your interview has been successfully cancelled. Here are the details of the cancelled interview:</p>
       <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <p><strong>Interviewer:</strong> ${interviewer.name}</p>
-        <p><strong>Originally Scheduled:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
         <p><strong>Duration:</strong> ${interview.duration} minutes</p>
       </div>
       <p>If you've already made a payment for this interview, please contact us regarding the refund process.</p>
@@ -141,7 +140,6 @@ const getInterviewCancellationConfirmationTemplate = (interview, candidate, inte
     Your interview has been successfully cancelled. Here are the details of the cancelled interview:
     
     Interviewer: ${interviewer.name}
-    Originally Scheduled: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
     Duration: ${interview.duration} minutes
     
     If you've already made a payment for this interview, please contact us regarding the refund process.
@@ -167,7 +165,6 @@ const getInterviewCancellationNotificationTemplate = (interview, candidate, inte
       <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <p><strong>Candidate:</strong> ${candidate.name}</p>
         <p><strong>Email:</strong> ${candidate.email}</p>
-        <p><strong>Originally Scheduled:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
         <p><strong>Duration:</strong> ${interview.duration} minutes</p>
       </div>
       <p>Your time slot is now available for other bookings.</p>
@@ -185,7 +182,6 @@ const getInterviewCancellationNotificationTemplate = (interview, candidate, inte
     
     Candidate: ${candidate.name}
     Email: ${candidate.email}
-    Originally Scheduled: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
     Duration: ${interview.duration} minutes
     
     Your time slot is now available for other bookings.

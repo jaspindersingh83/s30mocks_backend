@@ -212,7 +212,6 @@ exports.cancelInterview = async (req, res) => {
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
               <p><strong>Candidate:</strong> ${candidate.name} (${candidate.email})</p>
               <p><strong>Interviewer:</strong> ${interviewer.name} (${interviewer.email})</p>
-              <p><strong>Originally Scheduled:</strong> ${new Date(interview.scheduledDate).toLocaleString()}</p>
               <p><strong>Duration:</strong> ${interview.duration} minutes</p>
               <p><strong>Interview Type:</strong> ${interview.interviewType || 'Not specified'}</p>
               <p><strong>Price:</strong> ${interview.currency} ${interview.price}</p>
@@ -229,7 +228,6 @@ An interview has been cancelled. Here are the details:
 
 Candidate: ${candidate.name} (${candidate.email})
 Interviewer: ${interviewer.name} (${interviewer.email})
-Originally Scheduled: ${new Date(interview.scheduledDate).toLocaleString()}
 Duration: ${interview.duration} minutes
 Interview Type: ${interview.interviewType || 'Not specified'}
 Price: ${interview.currency} ${interview.price}
