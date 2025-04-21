@@ -190,9 +190,8 @@ exports.bookSlot = async (req, res) => {
               <p><strong>Interviewer:</strong> ${interviewer.name} (${
             interviewer.email
           })</p>
-              <p><strong>Date & Time:</strong> ${new Date(
-                interview.scheduledDate
-              ).toLocaleString()}</p>
+              <p><strong>Interview Date:</strong> ${new Date(interview.scheduledDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <p><strong>Important:</strong> <a href="https://s30mocks.vercel.app/admin/interviews" style="color: #4a6ee0; text-decoration: underline;">Check the Admin Dashboard</a> for the exact interview timing.</p>
               <p><strong>Duration:</strong> ${interview.duration} minutes</p>
               <p><strong>Interview Type:</strong> ${interview.interviewType}</p>
               <p><strong>Price:</strong> ${interview.currency} ${

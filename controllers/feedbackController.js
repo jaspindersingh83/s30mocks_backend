@@ -7,6 +7,7 @@ const { sendFeedbackNotification } = require('../utils/email');
 // Create feedback for an interview
 exports.createFeedback = async (req, res) => {
   try {
+    console.log("reaching here");
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -51,7 +52,7 @@ exports.createFeedback = async (req, res) => {
       interview: interviewId,
       interviewer: req.user.id,
       candidate: interview.candidate,
-      technicalScore: codingAndDebugging,
+      codingAndDebugging,
       communicationScore,
       problemSolvingScore,
       strengths,
