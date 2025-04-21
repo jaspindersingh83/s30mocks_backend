@@ -76,7 +76,7 @@ const getInterviewBookingNotificationTemplate = (interview, candidate, interview
       <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <p><strong>Candidate:</strong> ${candidate.name}</p>
         <p><strong>Email:</strong> ${candidate.email}</p>
-        <p><strong>Interview Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
+        <p><strong>Interview Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>  
         <p><strong>Duration:</strong> ${interview.duration} minutes</p>
         <p><strong>Meeting Link:</strong> ${interview.meetingLink || "To be provided"}</p>
       </div>
@@ -121,6 +121,7 @@ const getInterviewCancellationConfirmationTemplate = (interview, candidate, inte
       <p>Your interview has been successfully cancelled. Here are the details of the cancelled interview:</p>
       <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <p><strong>Interviewer:</strong> ${interviewer.name}</p>
+        <p><strong>Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
         <p><strong>Duration:</strong> ${interview.duration} minutes</p>
       </div>
       <p>We hope to see you book another interview soon!</p>
@@ -136,6 +137,7 @@ const getInterviewCancellationConfirmationTemplate = (interview, candidate, inte
     Your interview has been successfully cancelled. Here are the details of the cancelled interview:
     
     Interviewer: ${interviewer.name}
+    Date: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
     Duration: ${interview.duration} minutes
     
     We hope to see you book another interview soon!
@@ -159,6 +161,7 @@ const getInterviewCancellationNotificationTemplate = (interview, candidate, inte
       <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <p><strong>Candidate:</strong> ${candidate.name}</p>
         <p><strong>Email:</strong> ${candidate.email}</p>
+        <p><strong>Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
         <p><strong>Duration:</strong> ${interview.duration} minutes</p>
       </div>
       <p>Your time slot is now available for other bookings.</p>
@@ -176,6 +179,7 @@ const getInterviewCancellationNotificationTemplate = (interview, candidate, inte
     
     Candidate: ${candidate.name}
     Email: ${candidate.email}
+    Date: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
     Duration: ${interview.duration} minutes
     
     Your time slot is now available for other bookings.

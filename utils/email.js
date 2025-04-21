@@ -55,8 +55,6 @@ const sendEmail = async (to, subject, htmlBody, textBody, cc = []) => {
       "Email sending disabled in development. Would have sent to:",
       Array.isArray(to) ? to : [to]
     );
-    console.log("Email subject:", subject);
-    console.log("Email content:", textBody);
     return {
       messageId: "mock-message-id",
       message: "Email sending skipped - in development mode",
@@ -135,7 +133,6 @@ const sendEmail = async (to, subject, htmlBody, textBody, cc = []) => {
 
           // Try to send to admin only
           await ses.sendEmail(fallbackParams).promise();
-          console.log("Fallback email sent to admin");
         } catch (fallbackError) {
           console.error(
             "Failed to send fallback email to admin:",
@@ -566,7 +563,6 @@ const sendPromotionalEmail = async (candidates, adminEmail) => {
   
   for (let i = 0; i < candidates.length; i += batchSize) {
     const batch = candidates.slice(i, i + batchSize);
-    console.log(`Processing candidates ${i+1} to ${Math.min(i+batchSize, candidates.length)} of ${candidates.length}...`);
     
     // Send individual emails to each candidate
     const batchPromises = batch.map(async (candidate) => {

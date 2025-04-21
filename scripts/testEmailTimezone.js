@@ -61,7 +61,6 @@ console.log(bookingTemplate.textBody);
 console.log();
 
 // Test cancellation confirmation template
-console.log('Test 6: Interview Cancellation Confirmation Template');
 const cancellationTemplate = getInterviewCancellationConfirmationTemplate(interview, candidate, interviewer);
 console.log(cancellationTemplate.textBody);
 console.log();

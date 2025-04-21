@@ -190,7 +190,7 @@ exports.bookSlot = async (req, res) => {
               <p><strong>Interviewer:</strong> ${interviewer.name} (${
             interviewer.email
           })</p>
-              <p><strong>Interview Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
+              <p><strong>Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
               <p><strong>Duration:</strong> ${interview.duration} minutes</p>
               <p><strong>Interview Type:</strong> ${interview.interviewType}</p>
               <p><strong>Price:</strong> ${interview.currency} ${
@@ -211,7 +211,7 @@ A new interview has been booked. Here are the details:
 
 Candidate: ${candidate.name} (${candidate.email})
 Interviewer: ${interviewer.name} (${interviewer.email})
-Date & Time: ${new Date(interview.scheduledDate).toLocaleString()}
+Date: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
 Duration: ${interview.duration} minutes
 Interview Type: ${interview.interviewType}
 Price: ${interview.currency} ${interview.price}
