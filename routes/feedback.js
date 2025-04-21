@@ -39,22 +39,6 @@ router.get(
   feedbackController.getCandidateFeedback
 );
 
-// @route   PUT api/feedback/:feedbackId
-// @desc    Update existing feedback
-// @access  Private (Interviewer only)
-router.put(
-  '/:feedbackId',
-  [
-    auth,
-    check('codingAndDebugging', 'Coding and debugging score is required').isInt({ min: 1, max: 10 }),
-    check('communicationScore', 'Communication score is required').isInt({ min: 1, max: 10 }),
-    check('problemSolvingScore', 'Problem solving score is required').isInt({ min: 1, max: 10 }),
-    check('strengths', 'Strengths are required').not().isEmpty(),
-    check('areasOfImprovement', 'Areas of improvement are required').not().isEmpty()
-  ],
-  feedbackController.updateFeedback
-);
-
 // @route   PUT api/feedback/:id
 // @desc    Update feedback
 // @access  Private (Original interviewer only)
@@ -62,9 +46,11 @@ router.put(
   '/:id',
   [
     auth,
-    check('codingAndDebugging', 'Technical score must be between 1-5').optional().isInt({ min: 1, max: 5 }),
-    check('communicationScore', 'Communication score must be between 1-5').optional().isInt({ min: 1, max: 5 }),
-    check('problemSolvingScore', 'Problem solving score must be between 1-5').optional().isInt({ min: 1, max: 5 })
+    check('codingAndDebugging', 'Coding and debugging score is required').isInt({ min: 1, max: 10 }),
+    check('communicationScore', 'Communication score is required').isInt({ min: 1, max: 10 }),
+    check('problemSolvingScore', 'Problem solving score is required').isInt({ min: 1, max: 10 }),
+    check('strengths', 'Strengths are required').not().isEmpty(),
+    check('areasOfImprovement', 'Areas of improvement are required').not().isEmpty()
   ],
   feedbackController.updateFeedback
 );
