@@ -85,7 +85,7 @@ exports.getUpiSetup = async (req, res) => {
   }
 };
 
-// Create a payment request for UPI payment
+// Create a payment request for UPI payment (for existing interviews)
 exports.createPaymentRequest = async (req, res) => {
   try {
     console.log('Creating payment request for interview:', req.body);
@@ -154,6 +154,168 @@ exports.createPaymentRequest = async (req, res) => {
   }
 };
 
+// Create a pre-booking payment request (before slot is booked)
+exports.createPreBookingPayment = async (req, res) => {
+  try {
+    const { slotId, interviewType } = req.body;
+    
+    // Verify slot exists and is not booked
+    const slot = await InterviewSlot.findById(slotId).populate('interviewer');
+    if (!slot) {
+      return res.status(404).json({ message: 'Slot not found' });
+    }
+    
+    if (slot.isBooked) {
+      return res.status(400).json({ message: 'This slot is already booked' });
+    }
+    
+    // Get the interviewer's UPI details
+    const interviewer = slot.interviewer;
+    if (!interviewer || !interviewer.upiId || !interviewer.qrCodeUrl) {
+      return res.status(400).json({ message: 'Interviewer has not set up UPI payment details yet' });
+    }
+    
+    // Get the price for this interview type
+    const priceRecord = await InterviewPrice.findOne({ interviewType: slot.interviewType });
+    if (!priceRecord) {
+      return res.status(404).json({ message: `Price for ${slot.interviewType} interviews not found` });
+    }
+    
+    // Use base price directly
+    const amount = priceRecord.price;
+    
+    // Create a temporary payment record (not linked to an interview yet)
+    const payment = new Payment({
+      paidBy: req.user.id,
+      amount,
+      upiId: interviewer.upiId,
+      qrCodeUrl: interviewer.qrCodeUrl,
+      status: 'pending',
+      isPreBooking: true, // Mark as pre-booking payment
+      slotId: slotId // Store the slot ID for reference
+    });
+    
+    await payment.save();
+    
+    res.json({
+      paymentId: payment._id,
+      upiId: interviewer.upiId,
+      qrCodeUrl: interviewer.qrCodeUrl,
+      amount: amount,
+      currency: priceRecord.currency || 'INR'
+    });
+  } catch (err) {
+    console.error('Pre-booking payment request error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Submit pre-booking payment proof and create interview
+exports.submitPreBookingPayment = async (req, res) => {
+  try {
+    const { paymentId, transactionId, slotId } = req.body;
+    
+    // Find the payment
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+    
+    // Verify the current user is the payer
+    if (payment.paidBy.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    
+    // Find the slot
+    const slot = await InterviewSlot.findById(slotId);
+    if (!slot) {
+      return res.status(404).json({ message: 'Slot not found' });
+    }
+    
+    if (slot.isBooked) {
+      return res.status(400).json({ message: 'This slot has already been booked' });
+    }
+    
+    // Upload screenshot to S3
+    let screenshotUrl = null;
+    if (req.file) {
+      screenshotUrl = await uploadToS3(req.file, 'payment-screenshots');
+    } else {
+      return res.status(400).json({ message: 'Payment screenshot is required' });
+    }
+    
+    // Update payment with transaction details
+    payment.transactionId = transactionId;
+    payment.transactionScreenshotUrl = screenshotUrl;
+    payment.status = 'submitted';
+    payment.submittedAt = new Date();
+    await payment.save();
+    
+    // Set duration based on interview type
+    const duration = slot.interviewType === "DSA" ? 40 : 50;
+    
+    // Find interviewer
+    const interviewer = await User.findById(slot.interviewer);
+    
+    // Create interview
+    const interview = new Interview({
+      candidate: req.user.id,
+      interviewer: slot.interviewer,
+      interviewType: slot.interviewType,
+      scheduledDate: slot.startTime,
+      duration: duration,
+      price: payment.amount,
+      currency: 'INR',
+      status: 'scheduled',
+      slot: slot._id,
+      timeZone: slot.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      meetingLink: interviewer?.defaultMeetingLink || "ping support team in whatsapp for link",
+      paymentId: payment._id,
+      paymentStatus: 'submitted' // Mark as payment submitted
+    });
+    
+    await interview.save();
+    
+    // Update payment with interview ID
+    payment.interview = interview._id;
+    payment.isPreBooking = false; // No longer a pre-booking payment
+    await payment.save();
+    
+    // Update slot
+    slot.isBooked = true;
+    slot.interview = interview._id;
+    await slot.save();
+    
+    // Schedule email reminders for 30 minutes before the interview
+    const scheduleInterviewReminder = require('../utils/scheduler').scheduleInterviewReminder;
+    await scheduleInterviewReminder(interview._id);
+    
+    // Send email notifications
+    const { sendInterviewBookingNotification, sendInterviewBookingConfirmation } = require('../utils/email');
+    const candidate = await User.findById(req.user.id);
+    const adminEmail = process.env.ADMIN_EMAIL || "jaspinder@thes30.com";
+    
+    try {
+      // Send notification to interviewer
+      await sendInterviewBookingNotification(interview, candidate, interviewer, adminEmail);
+      
+      // Send confirmation to candidate
+      await sendInterviewBookingConfirmation(interview, candidate, interviewer, adminEmail);
+    } catch (emailErr) {
+      console.error('Error sending email notifications:', emailErr);
+      // Continue even if email sending fails
+    }
+    
+    res.json({
+      message: 'Payment proof submitted and slot booked successfully',
+      interviewId: interview._id
+    });
+  } catch (err) {
+    console.error('Pre-booking payment submission error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
 // Upload UPI QR code (for interviewers)
 exports.uploadUpiQrCode = async (req, res) => {
   try {
@@ -198,6 +360,7 @@ exports.uploadUpiQrCode = async (req, res) => {
 exports.submitPaymentProof = async (req, res) => {
   try {
     const { paymentId, transactionId } = req.body;
+    const isPreBooking = false; // This is for existing interviews
     
     // Verify payment exists
     const payment = await Payment.findById(paymentId);

@@ -4,7 +4,18 @@ const PaymentSchema = new mongoose.Schema({
   interview: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Interview',
-    required: true
+    required: false // Not required for pre-booking payments
+  },
+  // For pre-booking payments, store the slot ID
+  slotId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'InterviewSlot',
+    required: false
+  },
+  // Flag to indicate if this is a pre-booking payment
+  isPreBooking: {
+    type: Boolean,
+    default: false
   },
   paidBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -30,6 +41,12 @@ const PaymentSchema = new mongoose.Schema({
   },
   transactionScreenshot: {
     type: String
+  },
+  transactionScreenshotUrl: {
+    type: String
+  },
+  submittedAt: {
+    type: Date
   },
   paymentMethod: {
     type: String,

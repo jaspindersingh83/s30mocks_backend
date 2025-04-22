@@ -82,6 +82,7 @@ exports.getAvailableSlots = async (req, res) => {
 exports.bookSlot = async (req, res) => {
   try {
     const { slotId } = req.params;
+    const { paymentSubmitted } = req.query;
 
     // Find the slot
     const slot = await InterviewSlot.findById(slotId);
@@ -116,6 +117,15 @@ exports.bookSlot = async (req, res) => {
         message:
           "You have pending payments for previous interviews. Please complete those payments before scheduling a new interview.",
         pendingInterviews: pendingInterviews,
+      });
+    }
+
+    // IMPORTANT: Check if payment has been submitted
+    // Only allow direct booking if paymentSubmitted=true is passed (from the pre-booking payment flow)
+    if (paymentSubmitted !== 'true') {
+      return res.status(400).json({
+        message: "Payment is required before booking a slot. Please use the Book & Pay button.",
+        requiresPayment: true
       });
     }
 
@@ -236,6 +246,36 @@ S30 Mocks System`
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server error");
+  }
+};
+
+// Get slot by ID
+exports.getSlotById = async (req, res) => {
+  try {
+    const { slotId } = req.params;
+    
+    // Find the slot
+    const slot = await InterviewSlot.findById(slotId)
+      .populate('interviewer', 'name email linkedInUrl role');
+      
+    if (!slot) {
+      return res.status(404).json({ message: 'Slot not found' });
+    }
+    
+    // Get price for this interview type
+    const priceRecord = await InterviewPrice.findOne({ interviewType: slot.interviewType });
+    
+    // Add price information to the slot
+    const slotWithPrice = slot.toObject();
+    if (priceRecord) {
+      slotWithPrice.price = priceRecord.price;
+      slotWithPrice.currency = priceRecord.currency;
+    }
+    
+    res.json(slotWithPrice);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 };
 

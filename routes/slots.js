@@ -25,6 +25,11 @@ const isInterviewer = (req, res, next) => {
 // @access  Private
 router.get('/available', auth, slotController.getAvailableSlots);
 
+// @route   GET api/slots/:slotId
+// @desc    Get slot details by ID
+// @access  Private
+router.get('/:slotId', auth, slotController.getSlotById);
+
 // @route   POST api/slots/book/:slotId
 // @desc    Book a slot
 // @access  Private (Candidate only)

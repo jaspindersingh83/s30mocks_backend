@@ -16,6 +16,18 @@ router.post(
   paymentController.createPaymentRequest
 );
 
+// @route   POST api/payments/create-prebooking-payment
+// @desc    Create a payment request before booking a slot
+// @access  Private (Candidate only)
+router.post(
+  '/create-prebooking-payment',
+  [
+    auth,
+    check('slotId', 'Slot ID is required').not().isEmpty()
+  ],
+  paymentController.createPreBookingPayment
+);
+
 // @route   POST api/payments/upload-qr-code
 // @desc    Upload UPI QR code (for interviewers)
 // @access  Private (Interviewer only)
@@ -41,6 +53,21 @@ router.post(
     check('transactionId', 'Transaction ID is required').not().isEmpty()
   ],
   paymentController.submitPaymentProof
+);
+
+// @route   POST api/payments/submit-prebooking-payment
+// @desc    Submit payment proof for pre-booking and create interview
+// @access  Private (Candidate only)
+router.post(
+  '/submit-prebooking-payment',
+  auth,
+  paymentController.uploadTransactionScreenshot,
+  [
+    check('paymentId', 'Payment ID is required').not().isEmpty(),
+    check('transactionId', 'Transaction ID is required').not().isEmpty(),
+    check('slotId', 'Slot ID is required').not().isEmpty()
+  ],
+  paymentController.submitPreBookingPayment
 );
 
 // @route   GET api/payments/upi-setup
