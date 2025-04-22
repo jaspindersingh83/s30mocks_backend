@@ -2,6 +2,7 @@ const Payment = require('../models/Payment');
 const Interview = require('../models/Interview');
 const User = require('../models/User');
 const InterviewPrice = require('../models/InterviewPrice');
+const InterviewSlot = require('../models/InterviewSlot');
 const path = require('path');
 const multer = require('multer');
 const { uploadToS3 } = require('../utils/s3');
