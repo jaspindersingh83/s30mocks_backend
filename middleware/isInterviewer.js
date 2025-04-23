@@ -3,6 +3,7 @@
  */
 module.exports = function(req, res, next) {
   // Check if user exists and has the role of interviewer
+  console.log('pamela');
   if (req.user && (req.user.role === 'interviewer' || req.user.role === 'admin')) {
     next();
   } else {

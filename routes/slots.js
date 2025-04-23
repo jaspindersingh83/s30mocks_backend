@@ -4,16 +4,7 @@ const { check } = require('express-validator');
 const slotController = require('../controllers/slotController');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
-
-// Middleware to check if user is an interviewer
-const isInterviewer = (req, res, next) => {
-  // Check if user exists and has the role of interviewer
-  if (req.user && (req.user.role === 'interviewer' || req.user.role === 'admin')) {
-    next();
-  } else {
-    return res.status(403).json({ message: 'Access denied. Only interviewers can perform this action.' });
-  }
-};
+const isInterviewer = require('../middleware/isInterviewer');
 
 // @route   POST api/slots/upload
 // @desc    Create slots from Google Sheet data
@@ -24,6 +15,11 @@ const isInterviewer = (req, res, next) => {
 // @desc    Get all available slots
 // @access  Private
 router.get('/available', auth, slotController.getAvailableSlots);
+
+// @route   GET api/slots/interviewer
+// @desc    Get interviewer's slots
+// @access  Private (Interviewer only)
+router.get('/interviewer', [auth, isInterviewer], slotController.getInterviewerSlots);
 
 // @route   GET api/slots/:slotId
 // @desc    Get slot details by ID
@@ -77,10 +73,7 @@ router.post(
   slotController.createBatchSlots
 );
 
-// @route   GET api/slots/interviewer
-// @desc    Get interviewer's slots
-// @access  Private (Interviewer only)
-router.get('/interviewer', [auth, isInterviewer], slotController.getInterviewerSlots);
+// This route has been moved above the /:slotId route
 
 // @route   DELETE api/slots/interviewer/:slotId
 // @desc    Delete interviewer's slot

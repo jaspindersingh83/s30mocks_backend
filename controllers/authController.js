@@ -113,13 +113,9 @@ exports.login = async (req, res) => {
       (err, token) => {
         if (err) throw err;
         
-        // Set cookie with proper settings for cross-domain use
-        res.cookie('token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production', // Secure in production
-          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
-          maxAge: 24 * 60 * 60 * 1000 // 24 hours
-        });
+        // Send token in response header and body (no cookies)
+        res.header('Authorization', `Bearer ${token}`);
+        res.header('x-auth-token', token);
         
         res.json({
           token,
@@ -151,11 +147,8 @@ exports.getCurrentUser = async (req, res) => {
 
 // Logout user
 exports.logout = (req, res) => {
-  res.clearCookie('token', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  });
+  // With JWT-only approach, logout is handled client-side by removing the token
+  // No server-side action needed since we're not using cookies
   res.json({ message: 'Logged out successfully' });
 };
 
@@ -219,13 +212,9 @@ exports.googleAuth = async (req, res) => {
       (err, jwtToken) => {
         if (err) throw err;
         
-        // Set cookie with proper settings for cross-domain use
-        res.cookie('token', jwtToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production', // Secure in production
-          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
-          maxAge: 24 * 60 * 60 * 1000 // 24 hours
-        });
+        // Send token in response header and body (no cookies)
+        res.header('Authorization', `Bearer ${jwtToken}`);
+        res.header('x-auth-token', jwtToken);
         
         res.json({
           token: jwtToken,

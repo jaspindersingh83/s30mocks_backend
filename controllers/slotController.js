@@ -436,10 +436,16 @@ exports.createInterviewerSlot = async (req, res) => {
 // Get interviewer's slots
 exports.getInterviewerSlots = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
-
+    const { startDate, endDate, interviewType } = req.query;
+    console.log("Query parameters:", { startDate, endDate, interviewType });
+//
     // Build filter
     const filter = { interviewer: req.user.id };
+    
+    // Add interview type filter if provided
+    if (interviewType && ["DSA", "System Design"].includes(interviewType)) {
+      filter.interviewType = interviewType;
+    }
 
     // Add date range filter if provided
     if (startDate && endDate) {
