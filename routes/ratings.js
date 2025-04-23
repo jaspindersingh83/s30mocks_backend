@@ -32,4 +32,9 @@ router.get('/interviewer/:interviewerId', ratingController.getInterviewerRatings
 // @access  Public
 router.get('/interviewer/:interviewerId/average', ratingController.getInterviewerAverageRating);
 
+// @route   GET api/ratings/all
+// @desc    Get all ratings (admin only)
+// @access  Private/Admin
+router.get('/all', auth, ratingController.getAllRatings);
+
 module.exports = router;

@@ -502,6 +502,88 @@ const getFeedbackNotificationTemplates = (feedback, interview, candidate, interv
   };
 };
 
+/**
+ * Generate rating notification email templates
+ */
+const getRatingNotificationTemplates = (rating, interview, candidate, interviewer) => {
+  const interviewerHtmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #4a6ee0;">New Rating Received</h2>
+      <p>Hello ${interviewer.name},</p>
+      <p>You've received a new rating from a candidate for your recent interview. Here are the details:</p>
+      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p><strong>Candidate:</strong> ${candidate.name}</p>
+        <p><strong>Interview Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
+        <p><strong>Rating:</strong> ${rating.rating}/5</p>
+        ${rating.feedback ? `<p><strong>Feedback:</strong> ${rating.feedback}</p>` : ''}
+      </div>
+      <p>Thank you for your continued contribution to our platform!</p>
+      <p>Best regards,<br>S30 Mocks Team</p>
+    </div>
+  `;
+
+  const interviewerTextBody = `
+    New Rating Received
+    
+    Hello ${interviewer.name},
+    
+    You've received a new rating from a candidate for your recent interview. Here are the details:
+    
+    Candidate: ${candidate.name}
+    Interview Date: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
+    Rating: ${rating.rating}/5
+    ${rating.feedback ? `Feedback: ${rating.feedback}` : ''}
+    
+    Thank you for your continued contribution to our platform!
+    
+    Best regards,
+    S30 Mocks Team
+  `;
+
+  const adminHtmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #4a6ee0;">New Rating Submitted</h2>
+      <p>Hello Admin,</p>
+      <p>A new rating has been submitted by a candidate. Here are the details:</p>
+      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p><strong>Candidate:</strong> ${candidate.name}</p>
+        <p><strong>Interviewer:</strong> ${interviewer.name}</p>
+        <p><strong>Interview Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
+        <p><strong>Rating:</strong> ${rating.rating}/5</p>
+        ${rating.feedback ? `<p><strong>Feedback:</strong> ${rating.feedback}</p>` : ''}
+      </div>
+      <p>You can view all ratings in the admin dashboard.</p>
+      <p>Best regards,<br>S30 Mocks System</p>
+    </div>
+  `;
+
+  const adminTextBody = `
+    New Rating Submitted
+    
+    Hello Admin,
+    
+    A new rating has been submitted by a candidate. Here are the details:
+    
+    Candidate: ${candidate.name}
+    Interviewer: ${interviewer.name}
+    Interview Date: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
+    Rating: ${rating.rating}/5
+    ${rating.feedback ? `Feedback: ${rating.feedback}` : ''}
+    
+    You can view all ratings in the admin dashboard.
+    
+    Best regards,
+    S30 Mocks System
+  `;
+
+  return {
+    interviewerHtmlBody,
+    interviewerTextBody,
+    adminHtmlBody,
+    adminTextBody
+  };
+};
+
 module.exports = {
   formatDateWithTimezone,
   getInterviewBookingConfirmationTemplate,
@@ -511,5 +593,6 @@ module.exports = {
   getInterviewReminderTemplates,
   getPaymentVerificationNotificationTemplate,
   getPaymentVerificationConfirmationTemplate,
-  getFeedbackNotificationTemplates
+  getFeedbackNotificationTemplates,
+  getRatingNotificationTemplates
 };

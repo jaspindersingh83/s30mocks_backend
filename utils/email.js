@@ -11,7 +11,8 @@ const {
   getInterviewReminderTemplates,
   getPaymentVerificationNotificationTemplate,
   getPaymentVerificationConfirmationTemplate,
-  getFeedbackNotificationTemplates
+  getFeedbackNotificationTemplates,
+  getRatingNotificationTemplates
 } = require("./emailTemplates");
 
 // Configure AWS SDK
@@ -655,6 +656,44 @@ const sendPromotionalEmail = async (candidates, adminEmail) => {
   return results;
 };
 
+/**
+ * Send rating notification email to interviewer and admin
+ * @param {Object} rating - The rating object
+ * @param {Object} interview - The interview object
+ * @param {Object} candidate - The candidate user object
+ * @param {Object} interviewer - The interviewer user object
+ * @param {String} adminEmail - Admin email address
+ */
+const sendRatingNotification = async (
+  rating,
+  interview,
+  candidate,
+  interviewer,
+  adminEmail
+) => {
+  const interviewerSubject = "New Rating Received for Your Interview";
+  const adminSubject = `New Rating Submitted - ${candidate.name}'s Interview with ${interviewer.name}`;
+
+  // Get email templates with proper timezone formatting
+  const {
+    interviewerHtmlBody,
+    interviewerTextBody,
+    adminHtmlBody,
+    adminTextBody
+  } = getRatingNotificationTemplates(rating, interview, candidate, interviewer);
+
+  // Send emails
+  await Promise.all([
+    sendEmail(
+      interviewer.email,
+      interviewerSubject,
+      interviewerHtmlBody,
+      interviewerTextBody
+    ),
+    sendEmail(adminEmail, adminSubject, adminHtmlBody, adminTextBody),
+  ]);
+};
+
 module.exports = {
   sendEmail,
   sendFeedbackNotification,
@@ -669,4 +708,5 @@ module.exports = {
   sendVerificationSuccessEmail,
   sendPasswordResetEmail,
   sendPromotionalEmail,
+  sendRatingNotification
 };

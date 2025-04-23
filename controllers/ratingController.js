@@ -3,6 +3,7 @@ const Interview = require("../models/Interview");
 const User = require("../models/User");
 const mongoose = require("mongoose");
 const { validationResult } = require("express-validator");
+const { sendRatingNotification } = require("../utils/email");
 
 // Create a new rating
 exports.createRating = async (req, res) => {
@@ -61,7 +62,45 @@ exports.createRating = async (req, res) => {
     // Update interviewer's average rating
     await updateInterviewerAverageRating(interview.interviewer);
 
+    // Get candidate and interviewer details
+    const candidate = await User.findById(req.user.id);
+    const interviewer = await User.findById(interview.interviewer);
+    
+    // Get admin email from environment variables
+    const adminEmail = process.env.ADMIN_EMAIL || "admin@example.com";
+
+    // Send email notification
+    await sendRatingNotification(
+      newRating,
+      interview,
+      candidate,
+      interviewer,
+      adminEmail
+    );
+
     res.status(201).json(newRating);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+};
+
+// Get all ratings (for admin)
+exports.getAllRatings = async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Not authorized to view all ratings" });
+    }
+
+    // Get all ratings with populated fields
+    const ratings = await Rating.find()
+      .populate("candidate", "name email")
+      .populate("interviewer", "name email")
+      .populate("interview", "scheduledDate interviewType")
+      .sort({ createdAt: -1 });
+
+    res.json(ratings);
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server error");
