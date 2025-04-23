@@ -32,13 +32,19 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-// Configure CORS for JWT-only authentication
+// Configure CORS to properly handle authenticated requests
 app.use(cors({
   origin: ['https://s30mocks.vercel.app', 'http://localhost:3000'],
-  credentials: false, // No cookies needed for JWT-only auth
+  credentials: true, // Required for cross-domain authenticated requests
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
 }));
+
+// Add Access-Control-Allow-Credentials header to all responses
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
 
 // Add security headers for cross-origin communication
 app.use((req, res, next) => {
