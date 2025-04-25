@@ -518,8 +518,11 @@ exports.verifyPayment = async (req, res) => {
         const admin = await User.findOne({ role: 'admin' });
         const adminEmail = admin ? admin.email : process.env.ADMIN_EMAIL || 'admin@s30mocks.com';
         
-        // Send payment verification confirmation to candidate
-        await sendPaymentVerificationConfirmation(interview, payment, candidate, interviewer, adminEmail);
+        // Import the helper function that ensures admin is CC'd
+        const { sendPaymentVerificationConfirmationWithAdminCC } = require('../utils/emailHelper');
+        
+        // Send payment verification confirmation to candidate with admin CC'd
+        await sendPaymentVerificationConfirmationWithAdminCC(interview, payment, candidate, interviewer, adminEmail);
       } catch (emailError) {
         console.error('Error sending payment verification confirmation email:', emailError);
         // Continue with the response even if email fails
