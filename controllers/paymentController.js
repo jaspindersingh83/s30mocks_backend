@@ -272,7 +272,7 @@ exports.submitPreBookingPayment = async (req, res) => {
       timeZone: slot.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       meetingLink: interviewer?.defaultMeetingLink || "ping support team in whatsapp for link",
       paymentId: payment._id,
-      paymentStatus: 'submitted' // Mark as payment submitted
+      paymentStatus: 'pending' // Payment proof submitted but not yet verified
     });
     
     await interview.save();
