@@ -3,7 +3,7 @@ const Payment = require('../models/Payment');
 const Interview = require('../models/Interview');
 require('dotenv').config();
 
-const paymentId = '6805242e43f121af6871e10a';
+const paymentId = '68052  42e43f121af6871e10a';
 
 async function deletePayment() {
   try {
