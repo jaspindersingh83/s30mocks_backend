@@ -544,7 +544,8 @@ exports.getPendingPayments = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
     
-    let query = { status: 'pending' };
+    // Include both 'pending' and 'submitted' status payments that need verification
+    let query = { status: { $in: [ 'submitted'] } };
     
     // If interviewer, only show their interviews' payments
     if (req.user.role === 'interviewer') {
