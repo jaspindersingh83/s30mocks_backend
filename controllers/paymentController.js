@@ -246,7 +246,9 @@ exports.submitPreBookingPayment = async (req, res) => {
     }
     
     // Update payment with transaction details
-    payment.transactionId = transactionId;
+    // Store only the last 4 digits of the transaction ID for UPI payments
+    const last4Digits = transactionId.length > 4 ? transactionId.slice(-4) : transactionId;
+    payment.transactionId = last4Digits;
     payment.transactionScreenshotUrl = screenshotUrl;
     payment.status = 'submitted';
     payment.submittedAt = new Date();
@@ -379,7 +381,9 @@ exports.submitPaymentProof = async (req, res) => {
     const screenshotUrl = await uploadToS3(req.file, 'transaction-screenshots');
     
     // Update payment with transaction details
-    payment.transactionId = transactionId;
+    // Store only the last 4 digits of the transaction ID for UPI payments
+    const last4Digits = transactionId.length > 4 ? transactionId.slice(-4) : transactionId;
+    payment.transactionId = last4Digits;
     payment.transactionScreenshot = screenshotUrl;
     payment.status = 'pending'; // Change status to pending after proof is submitted
     await payment.save();
