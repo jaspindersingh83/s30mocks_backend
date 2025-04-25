@@ -5,7 +5,7 @@ const Feedback = require('../models/Feedback');
 require('dotenv').config();
 
 // The specific interview ID to delete
-const interviewId = '680babb4d99fe18b3c56d5ab';
+const interviewId = '680b108a8d76d5e922356f16';
 
 
 async function deleteSpecificInterview() {

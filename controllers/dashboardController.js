@@ -69,9 +69,10 @@ exports.getDashboardStats = async (req, res) => {
     if (userRole === 'candidate') {
       // Count all payments that need attention from this candidate
       // This includes both regular payments and pre-booking payments
+      // Only count payments with 'pending' or 'rejected' status, not 'submitted'
       const pendingPaymentsCount = await Payment.countDocuments({
         paidBy: userId,
-        status: { $in: ['pending', 'submitted', 'rejected'] }
+        status: { $in: ['pending', 'rejected'] }
       });
       stats.pendingPayments = pendingPaymentsCount;
     }
