@@ -36,40 +36,42 @@ exports.getDashboardStats = async (req, res) => {
 
     // For interviewers: count pending payments and total earnings
     if (userRole === 'interviewer') {
-      // Get all completed interviews for this interviewer
+      // Get all interviews for this interviewer (for calculating total earnings)
       const completedInterviews = await Interview.find(completedQuery);
-      const interviewIds = completedInterviews.map(interview => interview._id);
       
-      // Count pending payments
+      // Count pending payments (both 'pending' and 'submitted' status need verification)
+      // Note: We're now counting all payments for this interviewer, not just those for completed interviews
+      // This is because in the new pre-booking flow, payments are submitted before interviews are completed
+      
+      // First, get all interviews for this interviewer
+      const allInterviews = await Interview.find({ interviewer: userId });
+      const allInterviewIds = allInterviews.map(interview => interview._id);
+     
+      // Count payments that need verification
       const pendingPaymentsCount = await Payment.countDocuments({
-        interview: { $in: interviewIds },
-        status: 'pending'
+        $or: [
+          // Include payments linked to any interview by this interviewer
+          { interview: { $in: allInterviewIds }, status: { $in: ['submitted'] } }
+        ]
       });
       stats.pendingPayments = pendingPaymentsCount;
       
       // Calculate total earnings from verified payments
       const verifiedPayments = await Payment.find({
-        interview: { $in: interviewIds },
+        interview: { $in: allInterviewIds },
         status: 'verified'
       });
       
       stats.totalEarnings = verifiedPayments.reduce((total, payment) => total + payment.amount, 0);
     }
     
-    // For candidates: count pending payments only for completed interviews
+    // For candidates: count pending payments
     if (userRole === 'candidate') {
-      // First get all completed interviews for this candidate
-      const completedInterviews = await Interview.find({
-        candidate: userId,
-        status: 'completed'
-      });
-      const completedInterviewIds = completedInterviews.map(interview => interview._id);
-      
-      // Count pending payments only for completed interviews
+      // Count all payments that need attention from this candidate
+      // This includes both regular payments and pre-booking payments
       const pendingPaymentsCount = await Payment.countDocuments({
         paidBy: userId,
-        interview: { $in: completedInterviewIds },
-        status: 'pending'
+        status: { $in: ['pending', 'submitted', 'rejected'] }
       });
       stats.pendingPayments = pendingPaymentsCount;
     }
