@@ -104,8 +104,11 @@ exports.createPaymentRequest = async (req, res) => {
     }
     
     // Check if payment is already made
-    if (interview.paymentStatus === 'paid') {
-      return res.status(400).json({ message: 'Payment already completed' });
+    if (interview.paymentId) {
+      const payment = await Payment.findById(interview.paymentId);
+      if (payment && payment.status === 'verified') {
+        return res.status(400).json({ message: 'Payment already completed' });
+      }
     }
     
     // Get interviewer to fetch their UPI details
@@ -273,8 +276,7 @@ exports.submitPreBookingPayment = async (req, res) => {
       slot: slot._id,
       timeZone: slot.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       meetingLink: interviewer?.defaultMeetingLink || "ping support team in whatsapp for link",
-      paymentId: payment._id,
-      paymentStatus: 'pending' // Payment proof submitted but not yet verified
+      paymentId: payment._id // Reference to the payment
     });
     
     await interview.save();
@@ -294,13 +296,23 @@ exports.submitPreBookingPayment = async (req, res) => {
     await scheduleInterviewReminder(interview._id);
     
     // Send email notifications
-    const { sendInterviewBookingNotification, sendInterviewBookingConfirmation } = require('../utils/email');
+    const { 
+      sendInterviewBookingConfirmation, 
+      sendCombinedBookingAndPaymentNotification 
+    } = require('../utils/email');
+    
     const candidate = await User.findById(req.user.id);
     const adminEmail = process.env.ADMIN_EMAIL || "jaspinder@thes30.com";
     
     try {
-      // Send notification to interviewer
-      await sendInterviewBookingNotification(interview, candidate, interviewer, adminEmail);
+      // Send combined notification to interviewer (booking + payment verification)
+      await sendCombinedBookingAndPaymentNotification(
+        interview, 
+        payment, 
+        candidate, 
+        interviewer, 
+        adminEmail
+      );
       
       // Send confirmation to candidate
       await sendInterviewBookingConfirmation(interview, candidate, interviewer, adminEmail);
@@ -488,9 +500,7 @@ exports.verifyPayment = async (req, res) => {
       payment.verifiedBy = req.user.id;
       payment.verifiedAt = Date.now();
       
-      // Update interview payment status
-      interview.paymentStatus = 'paid';
-      await interview.save();
+      // No need to update interview payment status as we're now using the payment reference
     } else {
       payment.status = 'rejected';
       payment.verifiedBy = req.user.id;
@@ -586,6 +596,29 @@ exports.getPaymentStats = async (req, res) => {
     res.json(stats);
   } catch (err) {
     console.error('Error fetching payment statistics:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Get all payments (for admin)
+exports.getAllPayments = async (req, res) => {
+  try {
+    // Only admins can view all payments
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    
+    // Get all payments with populated references
+    const payments = await Payment.find()
+      .populate('paidBy', 'name email')
+      .populate('interview', 'scheduledDate interviewType')
+      .populate('slotId', 'startTime interviewType')
+      .populate('verifiedBy', 'name')
+      .sort({ createdAt: -1 }); // Sort by newest first
+    
+    res.json(payments);
+  } catch (err) {
+    console.error('Error fetching all payments:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };

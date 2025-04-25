@@ -136,10 +136,7 @@ exports.getAllInterviews = async (req, res) => {
       }
     }
     
-    // Filter by payment status
-    if (paymentStatus && ['pending', 'submitted', 'verified', 'rejected', 'refunded'].includes(paymentStatus)) {
-      query.paymentStatus = paymentStatus;
-    }
+    // We'll handle payment status filtering after fetching the interviews, as we need to populate the payment data
     
     // Add search functionality
     if (search) {
@@ -159,16 +156,29 @@ exports.getAllInterviews = async (req, res) => {
       ];
     }
     
-    // Execute query with pagination
-    const interviews = await Interview.find(query)
+    // Execute query with pagination - populate payment data
+    let interviews = await Interview.find(query)
       .populate('candidate', 'name email')
       .populate('interviewer', 'name email')
+      .populate('paymentId')
       .sort({ scheduledDate: -1 })
       .skip(skip)
       .limit(limit);
     
-    // Get total count for pagination
-    const total = await Interview.countDocuments(query);
+    // Filter by payment status if requested
+    if (paymentStatus && ['pending', 'submitted', 'verified', 'rejected', 'refunded'].includes(paymentStatus)) {
+      interviews = interviews.filter(interview => {
+        if (!interview.paymentId) {
+          // If no payment exists and we're looking for 'pending', include it
+          return paymentStatus === 'pending';
+        }
+        // Otherwise, check the payment status
+        return interview.paymentId.status === paymentStatus;
+      });
+    }
+    
+    // Get total count for pagination - this is now approximate since we filtered after the query
+    const total = paymentStatus ? interviews.length : await Interview.countDocuments(query);
     
     res.json({
       interviews,

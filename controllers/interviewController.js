@@ -26,11 +26,17 @@ exports.createInterview = async (req, res) => {
     }
     
     // Check if the candidate has any pending payments for previous interviews
-    const pendingInterviews = await Interview.find({
+    // First find all interviews for this candidate
+    const candidateInterviews = await Interview.find({
       candidate: req.user.id,
-      status: { $ne: 'cancelled' },
-      paymentStatus: 'pending'
-    });
+      status: { $ne: 'cancelled' }
+    }).populate('paymentId');
+    
+    // Filter to find interviews with pending or no payments
+    const pendingInterviews = candidateInterviews.filter(interview => 
+      !interview.paymentId || 
+      (interview.paymentId && interview.paymentId.status !== 'verified')
+    );
     
     if (pendingInterviews.length > 0) {
       return res.status(400).json({ 

@@ -54,13 +54,9 @@ const InterviewSchema = new mongoose.Schema({
     type: String,
     default: 'Asia/Kolkata' // Default to IST
   },
-  paymentStatus: {
-    type: String,
-    enum: ['pending', 'paid', 'refunded'],
-    default: 'pending'
-  },
   paymentId: {
-    type: String
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Payment'
   },
   slot: {
     type: mongoose.Schema.Types.ObjectId,

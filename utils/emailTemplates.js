@@ -584,6 +584,62 @@ const getRatingNotificationTemplates = (rating, interview, candidate, interviewe
   };
 };
 
+/**
+ * Generate combined booking and payment verification notification email template
+ */
+const getCombinedBookingAndPaymentTemplate = (interview, payment, candidate, interviewer) => {
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #4a6ee0;">New Interview Booking with Payment Verification</h2>
+      <p>Hello ${interviewer.name},</p>
+      <p>A new interview has been booked with you and the candidate has submitted payment. Here are the details:</p>
+      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0;">Interview Details</h3>
+        <p><strong>Candidate:</strong> ${candidate.name}</p>
+        <p><strong>Email:</strong> ${candidate.email}</p>
+        <p><strong>Interview Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>  
+        <p><strong>Duration:</strong> ${interview.duration} minutes</p>
+        <p><strong>Meeting Link:</strong> ${interview.meetingLink || "To be provided"}</p>
+        
+        <h3 style="margin-top: 20px;">Payment Details</h3>
+        <p><strong>Amount:</strong> ${payment.currency} ${payment.amount}</p>
+        <p><strong>Transaction ID:</strong> ${payment.transactionId || "Not provided"}</p>
+      </div>
+      <p>Please log in to your account to verify this payment. The candidate has uploaded proof of payment which you can review on the platform.</p>
+      <p>Thank you for being a part of our platform!</p>
+      <p>Best regards,<br>S30 Mocks Team</p>
+    </div>
+  `;
+
+  const textBody = `
+    New Interview Booking with Payment Verification
+    
+    Hello ${interviewer.name},
+    
+    A new interview has been booked with you and the candidate has submitted payment. Here are the details:
+    
+    === Interview Details ===
+    Candidate: ${candidate.name}
+    Email: ${candidate.email}
+    Date: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
+    Duration: ${interview.duration} minutes
+    Meeting Link: ${interview.meetingLink || "To be provided"}
+    
+    === Payment Details ===
+    Amount: ${payment.currency} ${payment.amount}
+    Transaction ID: ${payment.transactionId || "Not provided"}
+    
+    Please log in to your account to verify this payment. The candidate has uploaded proof of payment which you can review on the platform.
+    
+    Thank you for being a part of our platform!
+    
+    Best regards,
+    S30 Mocks Team
+  `;
+
+  return { htmlBody, textBody };
+};
+
 module.exports = {
   formatDateWithTimezone,
   getInterviewBookingConfirmationTemplate,
@@ -594,5 +650,6 @@ module.exports = {
   getPaymentVerificationNotificationTemplate,
   getPaymentVerificationConfirmationTemplate,
   getFeedbackNotificationTemplates,
-  getRatingNotificationTemplates
+  getRatingNotificationTemplates,
+  getCombinedBookingAndPaymentTemplate
 };

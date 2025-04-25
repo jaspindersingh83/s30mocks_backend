@@ -12,7 +12,8 @@ const {
   getPaymentVerificationNotificationTemplate,
   getPaymentVerificationConfirmationTemplate,
   getFeedbackNotificationTemplates,
-  getRatingNotificationTemplates
+  getRatingNotificationTemplates,
+  getCombinedBookingAndPaymentTemplate
 } = require("./emailTemplates");
 
 // Configure AWS SDK
@@ -316,6 +317,36 @@ const sendPaymentVerificationNotification = async (
 
   // Get email template with proper timezone formatting
   const { htmlBody, textBody } = getPaymentVerificationNotificationTemplate(interview, payment, candidate, interviewer);
+
+  return await sendEmail(
+    interviewer.email,
+    subject,
+    htmlBody,
+    textBody,
+    adminEmail ? [adminEmail] : []
+  );
+};
+
+/**
+ * Send combined booking and payment verification notification to interviewer
+ * @param {Object} interview - The interview object
+ * @param {Object} payment - The payment object
+ * @param {Object} candidate - The candidate user object
+ * @param {Object} interviewer - The interviewer user object
+ * @param {String} adminEmail - Admin email address
+ * @returns {Promise} - Promise that resolves to the SES response
+ */
+const sendCombinedBookingAndPaymentNotification = async (
+  interview,
+  payment,
+  candidate,
+  interviewer,
+  adminEmail
+) => {
+  const subject = "New Interview Booking with Payment Verification";
+
+  // Get email template with proper timezone formatting
+  const { htmlBody, textBody } = getCombinedBookingAndPaymentTemplate(interview, payment, candidate, interviewer);
 
   return await sendEmail(
     interviewer.email,
@@ -701,6 +732,7 @@ module.exports = {
   sendInterviewBookingNotification,
   sendInterviewCancellationNotification,
   sendPaymentVerificationNotification,
+  sendCombinedBookingAndPaymentNotification,
   sendInterviewBookingConfirmation,
   sendInterviewCancellationConfirmation,
   sendPaymentVerificationConfirmation,

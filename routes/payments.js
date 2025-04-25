@@ -45,16 +45,16 @@ router.post(
 // @route   POST api/payments/submit-payment-proof
 // @desc    Submit payment proof (for candidates)
 // @access  Private (Candidate only)
-// router.post(
-//   '/submit-payment-proof',
-//   auth,
-//   paymentController.uploadTransactionScreenshot,
-//   [
-//     check('paymentId', 'Payment ID is required').not().isEmpty(),
-//     check('transactionId', 'Transaction ID is required').not().isEmpty()
-//   ],
-//   paymentController.submitPaymentProof
-// );
+router.post(
+  '/submit-payment-proof',
+  auth,
+  paymentController.uploadTransactionScreenshot,
+  [
+    check('paymentId', 'Payment ID is required').not().isEmpty(),
+    check('transactionId', 'Transaction ID is required').not().isEmpty()
+  ],
+  paymentController.submitPaymentProof
+);
 
 // @route   POST api/payments/submit-prebooking-payment
 // @desc    Submit payment proof for pre-booking and create interview
@@ -109,6 +109,15 @@ router.get(
   '/stats',
   auth,
   paymentController.getPaymentStats
+);
+
+// @route   GET api/payments/all
+// @desc    Get all payments (for admin)
+// @access  Private (Admin only)
+router.get(
+  '/all',
+  auth,
+  paymentController.getAllPayments
 );
 
 // @route   GET api/payments/interview/:interviewId
