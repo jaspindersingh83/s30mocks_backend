@@ -396,7 +396,7 @@ exports.submitPaymentProof = async (req, res) => {
     // Store only the last 4 digits of the transaction ID for UPI payments
     const last4Digits = transactionId.length > 4 ? transactionId.slice(-4) : transactionId;
     payment.transactionId = last4Digits;
-    payment.transactionScreenshot = screenshotUrl;
+    payment.transactionScreenshotUrl = screenshotUrl;
     payment.status = 'pending'; // Change status to pending after proof is submitted
     await payment.save();
     

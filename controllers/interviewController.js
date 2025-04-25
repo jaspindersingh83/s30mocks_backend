@@ -32,10 +32,10 @@ exports.createInterview = async (req, res) => {
       status: { $ne: 'cancelled' }
     }).populate('paymentId');
     
-    // Filter to find interviews with pending or no payments
+    // Filter to find interviews with pending, submitted, or no payments
     const pendingInterviews = candidateInterviews.filter(interview => 
       !interview.paymentId || 
-      (interview.paymentId && interview.paymentId.status !== 'verified')
+      (interview.paymentId && ['pending', 'submitted', 'rejected'].includes(interview.paymentId.status))
     );
     
     if (pendingInterviews.length > 0) {
