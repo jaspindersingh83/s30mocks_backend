@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { check } = require('express-validator');
+const bcrypt = require('bcryptjs');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const User = require('../models/User');
@@ -92,7 +93,7 @@ router.put(
   ],
   async (req, res) => {
     try {
-      const { name, email, phone, linkedInUrl, workExperiences, education, defaultMeetingLink } = req.body;
+      const { name, email, phone, linkedInUrl, workExperiences, education, defaultMeetingLink, currentPassword, newPassword } = req.body;
       
       // Check if email already exists for another user
       const existingUser = await User.findOne({ email });
@@ -101,8 +102,31 @@ router.put(
       }
       
       // Validate LinkedIn URL if provided
-      if (linkedInUrl && !linkedInUrl.match(/^(https?:\/\/)?(www\.)?linkedin\.com\/in\/[\w-]+\/?$/)) {
+      if (linkedInUrl && !linkedInUrl.match(/^(https?:\/\/)?([\w-]+\.)?linkedin\.com\/in\/[\w-]+\/?$/)) {
         return res.status(400).json({ message: 'Please provide a valid LinkedIn profile URL' });
+      }
+      
+      // Get the current user with password for verification
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Handle password change if requested
+      if (currentPassword && newPassword) {
+        // Verify current password
+        const isMatch = await user.comparePassword(currentPassword);
+        if (!isMatch) {
+          return res.status(400).json({ message: 'Current password is incorrect' });
+        }
+        
+        // We'll update the password separately using findOneAndUpdate to avoid validation issues
+        // This approach bypasses the validation for required fields while still hashing the password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        
+        // Update just the password field
+        await User.findByIdAndUpdate(req.user.id, { password: hashedPassword });
       }
       
       // Prepare update data
@@ -123,14 +147,14 @@ router.put(
         updateData.defaultMeetingLink = defaultMeetingLink;
       }
       
-      // Update user
-      const user = await User.findByIdAndUpdate(
+      // Update user profile data (we're handling password separately above)
+      const updatedUser = await User.findByIdAndUpdate(
         req.user.id,
         { $set: updateData },
         { new: true }
       ).select('-password');
       
-      res.json(user);
+      res.json(updatedUser);
     } catch (err) {
       console.error(err.message);
       res.status(500).send('Server error');
