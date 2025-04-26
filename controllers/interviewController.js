@@ -344,12 +344,40 @@ exports.updateMeetingDetails = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
     
+    // Check if meeting link is actually changing
+    const isLinkUpdated = meetingLink && interview.meetingLink !== meetingLink;
+    
     if (meetingLink) interview.meetingLink = meetingLink;
     if (meetingPassword) interview.meetingPassword = meetingPassword;
     
     await interview.save();
     
-    res.json(interview);
+    // If the meeting link was updated, send notification to candidate
+    if (isLinkUpdated) {
+      try {
+        // Get candidate, interviewer, and admin details for email notification
+        const candidate = await User.findById(interview.candidate);
+        const interviewer = await User.findById(interview.interviewer);
+        const admin = await User.findOne({ role: 'admin' });
+        const adminEmail = admin ? admin.email : process.env.ADMIN_EMAIL || 'admin@s30mocks.com';
+        
+        // Import the email utility
+        const { sendMeetingLinkUpdateNotification } = require('../utils/email');
+        
+        // Send notification to candidate
+        await sendMeetingLinkUpdateNotification(interview, candidate, interviewer, adminEmail);
+        
+        console.log(`Meeting link update notification sent to ${candidate.email}`);
+      } catch (emailError) {
+        console.error('Error sending meeting link update notification:', emailError);
+        // Continue with the response even if email fails
+      }
+    }
+    
+    res.json({
+      ...interview._doc,
+      notificationSent: isLinkUpdated
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

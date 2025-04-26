@@ -39,6 +39,15 @@ router.get(
   feedbackController.getCandidateFeedback
 );
 
+// @route   GET api/feedback/all
+// @desc    Get all feedback in the system
+// @access  Private (Admin only)
+router.get(
+  '/all',
+  auth,
+  feedbackController.getAllFeedback
+);
+
 // @route   PUT api/feedback/:id
 // @desc    Update feedback
 // @access  Private (Original interviewer only)

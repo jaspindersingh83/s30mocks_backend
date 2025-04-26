@@ -640,10 +640,55 @@ const getCombinedBookingAndPaymentTemplate = (interview, payment, candidate, int
   return { htmlBody, textBody };
 };
 
+/**
+ * Generate meeting link update notification email template
+ */
+const getMeetingLinkUpdateTemplate = (interview, candidate, interviewer) => {
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #4a6ee0;">Meeting Link Updated</h2>
+      <p>Hello ${candidate.name},</p>
+      <p>The meeting link for your upcoming interview has been updated. Here are the new details:</p>
+      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p><strong>Interviewer:</strong> ${interviewer.name}</p>
+        <p><strong>Interview Date:</strong> ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}</p>
+        <p><strong>Duration:</strong> ${interview.duration} minutes</p>
+        <p><strong>New Meeting Link:</strong> <a href="${interview.meetingLink}" style="color: #4a6ee0;">${interview.meetingLink}</a></p>
+      </div>
+      <p>Please use this new link to join your interview at the scheduled time.</p>
+      <p>If you have any questions, please contact your interviewer or our support team.</p>
+      <p>Best regards,<br>S30 Mocks Team</p>
+    </div>
+  `;
+
+  const textBody = `
+    Meeting Link Updated
+    
+    Hello ${candidate.name},
+    
+    The meeting link for your upcoming interview has been updated. Here are the new details:
+    
+    Interviewer: ${interviewer.name}
+    Date: ${formatDateWithTimezone(interview.scheduledDate, interview.timeZone)}
+    Duration: ${interview.duration} minutes
+    New Meeting Link: ${interview.meetingLink}
+    
+    Please use this new link to join your interview at the scheduled time.
+    
+    If you have any questions, please contact your interviewer or our support team.
+    
+    Best regards,
+    S30 Mocks Team
+  `;
+
+  return { htmlBody, textBody };
+};
+
 module.exports = {
   formatDateWithTimezone,
   getInterviewBookingConfirmationTemplate,
   getInterviewBookingNotificationTemplate,
+  getMeetingLinkUpdateTemplate,
   getInterviewCancellationConfirmationTemplate,
   getInterviewCancellationNotificationTemplate,
   getInterviewReminderTemplates,

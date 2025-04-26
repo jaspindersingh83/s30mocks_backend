@@ -196,3 +196,31 @@ exports.updateFeedback = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+
+// Get all feedback (Admin only)
+exports.getAllFeedback = async (req, res) => {
+  try {
+    // Only admin can access all feedback
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized. Admin access required.' });
+    }
+    
+    const feedback = await Feedback.find({})
+      .populate('interviewer', 'name email')
+      .populate('candidate', 'name email')
+      .populate({
+        path: 'interview',
+        select: 'scheduledDate interviewType',
+        populate: {
+          path: 'interviewer candidate',
+          select: 'name email'
+        }
+      })
+      .sort({ createdAt: -1 });
+    
+    res.json(feedback);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};

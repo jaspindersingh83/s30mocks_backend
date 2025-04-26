@@ -13,7 +13,8 @@ const {
   getPaymentVerificationConfirmationTemplate,
   getFeedbackNotificationTemplates,
   getRatingNotificationTemplates,
-  getCombinedBookingAndPaymentTemplate
+  getCombinedBookingAndPaymentTemplate,
+  getMeetingLinkUpdateTemplate
 } = require("./emailTemplates");
 
 // Configure AWS SDK
@@ -725,10 +726,28 @@ const sendRatingNotification = async (
   ]);
 };
 
+/**
+ * Send meeting link update notification to candidate
+ * @param {Object} interview - The interview object
+ * @param {Object} candidate - The candidate user object
+ * @param {Object} interviewer - The interviewer user object
+ * @param {String} adminEmail - Admin email address to CC
+ * @returns {Promise} - Promise that resolves to the SES response
+ */
+const sendMeetingLinkUpdateNotification = async (interview, candidate, interviewer, adminEmail) => {
+  const { htmlBody, textBody } = getMeetingLinkUpdateTemplate(interview, candidate, interviewer);
+  
+  const subject = `[S30 Mocks] Meeting Link Updated for Your Interview on ${formatDateWithTimezone(interview.scheduledDate)}`;
+  
+  // Send to candidate and CC admin
+  return await sendEmail(candidate.email, subject, htmlBody, textBody, [adminEmail]);
+};
+
 module.exports = {
   sendEmail,
   sendFeedbackNotification,
   sendInterviewReminder,
+  sendMeetingLinkUpdateNotification,
   sendInterviewBookingNotification,
   sendInterviewCancellationNotification,
   sendPaymentVerificationNotification,
