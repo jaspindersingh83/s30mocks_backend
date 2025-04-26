@@ -7,15 +7,14 @@ const auth = require('../middleware/auth');
 // @route   POST api/payments/create-payment-request
 // @desc    Create a payment request for UPI payment
 // @access  Private (Candidate only)
-// DEPRECATED: All payments are now pre-booking
-// router.post(
-//   '/create-payment-request',
-//   [
-//     auth,
-//     check('interviewId', 'Interview ID is required').not().isEmpty()
-//   ],
-//   paymentController.createPaymentRequest
-// );
+router.post(
+  '/create-payment-request',
+  [
+    auth,
+    check('interviewId', 'Interview ID is required').not().isEmpty()
+  ],
+  paymentController.createPaymentRequest
+);
 
 // @route   POST api/payments/create-prebooking-payment
 // @desc    Create a payment request before booking a slot
