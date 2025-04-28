@@ -39,8 +39,10 @@ exports.getAvailableSlots = async (req, res) => {
     } else if (endDate) {
       filter.startTime = { $lte: new Date(endDate) };
     } else {
-      // Default to future slots if no dates specified
-      filter.startTime = { $gte: new Date() };
+      // Default to slots at least 24 hours in the future if no dates specified
+      const minBookingTime = new Date();
+      minBookingTime.setHours(minBookingTime.getHours() + 24); // Add 24 hours to current time
+      filter.startTime = { $gte: minBookingTime };
     }
 
     // Get available slots
@@ -464,8 +466,10 @@ exports.getInterviewerSlots = async (req, res) => {
     } else if (endDate) {
       filter.startTime = { $lte: new Date(endDate) };
     } else {
-      // Default to future slots if no dates specified
-      filter.startTime = { $gte: new Date() };
+      // Default to slots at least 24 hours in the future if no dates specified
+      const minBookingTime = new Date();
+      minBookingTime.setHours(minBookingTime.getHours() + 24); // Add 24 hours to current time
+      filter.startTime = { $gte: minBookingTime };
     }
 
     // Get slots

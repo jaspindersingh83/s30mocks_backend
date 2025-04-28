@@ -73,6 +73,35 @@ exports.updateUserRole = async (req, res) => {
       }
     }
     
+    // If promoting to interviewer, check for Zoho vendor ID
+    if (role === 'interviewer' && user.role !== 'interviewer') {
+      try {
+        // Import Zoho utilities
+        const { createZohoVendor } = require('../utils/zohoUtils');
+        
+        // Check if user already has a Zoho vendor ID
+        if (!user.zohoVendorId) {
+          // Create new vendor in Zoho Books
+          const vendorId = await createZohoVendor(user);
+          user.zohoVendorId = vendorId;
+          console.log(`Created new Zoho vendor ID ${vendorId} for user ${user.email}`);
+        } else {
+          console.log(`User ${user.email} already has Zoho vendor ID: ${user.zohoVendorId}`);
+        }
+        
+        // Set default commission rate if not already set
+        if (!user.commissionRate) {
+          user.commissionRate = 15; // Default 15% commission
+        }
+        
+        // No need to initialize bank details as interviewers pay commission to us
+      } catch (zohoError) {
+        // Log the error but continue with role update
+        console.error('Error with Zoho vendor creation:', zohoError);
+        // We don't want to block the role update if Zoho integration fails
+      }
+    }
+    
     // Update user role
     user.role = role;
     await user.save();
@@ -82,7 +111,8 @@ exports.updateUserRole = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        zohoVendorId: user.zohoVendorId
       }
     });
   } catch (err) {

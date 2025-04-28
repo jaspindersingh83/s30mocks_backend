@@ -33,6 +33,15 @@ const UserSchema = new mongoose.Schema({
   upiId: {
     type: String,
   },
+  zohoVendorId: {
+    type: String,
+  },
+  commissionRate: {
+    type: Number,
+    default: function() {
+      return this.role === 'interviewer' ? 15 : null; // Only set default for interviewers
+    }
+  },
   qrCodeUrl: {
     type: String,
   },
