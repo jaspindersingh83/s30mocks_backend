@@ -445,8 +445,6 @@ exports.createInterviewerSlot = async (req, res) => {
 exports.getInterviewerSlots = async (req, res) => {
   try {
     const { startDate, endDate, interviewType } = req.query;
-    console.log("Query parameters:", { startDate, endDate, interviewType });
-//
     // Build filter
     const filter = { interviewer: req.user.id };
     
