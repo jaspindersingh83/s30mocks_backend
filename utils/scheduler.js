@@ -16,6 +16,12 @@ const scheduleInterviewReminder = async (interviewId) => {
       return;
     }
 
+    // Check if a reminder is already scheduled for this interview
+    if (global.reminderJobs && global.reminderJobs.has(interviewId)) {
+      console.log(`Reminder already scheduled for interview ${interviewId}, skipping`);
+      return;
+    }
+
     // Calculate the reminder time (30 minutes before the interview)
     const interviewTime = new Date(interview.scheduledDate);
     const reminderTime = new Date(interviewTime.getTime() - 30 * 60 * 1000);
@@ -31,6 +37,11 @@ const scheduleInterviewReminder = async (interviewId) => {
     // Schedule the reminder
     const job = setTimeout(async () => {
       try {
+        // Remove the job from the map since it's executing now
+        if (global.reminderJobs) {
+          global.reminderJobs.delete(interviewId);
+        }
+
         // Fetch the latest interview data to ensure it's not cancelled
         const updatedInterview = await Interview.findById(interviewId);
         if (!updatedInterview || updatedInterview.status === 'cancelled') {
@@ -84,6 +95,11 @@ const cancelInterviewReminder = (interviewId) => {
  * Initialize the scheduler to check for upcoming interviews
  */
 const initializeScheduler = () => {
+  // Initialize the global map for reminder jobs if it doesn't exist
+  if (!global.reminderJobs) {
+    global.reminderJobs = new Map();
+  }
+
   // Run every hour to schedule reminders for upcoming interviews
   cron.schedule('0 * * * *', async () => {
     try {
@@ -100,7 +116,10 @@ const initializeScheduler = () => {
       
       console.log(`Found ${upcomingInterviews.length} upcoming interviews in the next 24 hours`);
       
-      // Schedule reminders for each interview
+      // Log currently scheduled reminders
+      console.log(`Currently have ${global.reminderJobs.size} reminders scheduled`);
+      
+      // Schedule reminders for each interview (the function will check for duplicates)
       for (const interview of upcomingInterviews) {
         scheduleInterviewReminder(interview._id);
       }
